@@ -122,6 +122,14 @@ type SortConfig = {
   direction: SortDirection;
 };
 
+// Add this new function near the top of the component
+const getStoredSortConfig = (): SortConfig => {
+  if (typeof window === "undefined") return { column: null, direction: "none" };
+
+  const stored = localStorage.getItem("leadsTableSort");
+  return stored ? JSON.parse(stored) : { column: null, direction: "none" };
+};
+
 export function LeadTable() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
@@ -137,10 +145,9 @@ export function LeadTable() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [csvPreviewData, setCSVPreviewData] = useState<CSVPreviewData[]>([]);
   const [showCSVPreview, setShowCSVPreview] = useState(false);
-  const [sortConfig, setSortConfig] = useState<SortConfig>({
-    column: null,
-    direction: "none",
-  });
+  const [sortConfig, setSortConfig] = useState<SortConfig>(
+    getStoredSortConfig()
+  );
 
   useEffect(() => {
     if (editingCell && inputRef.current) {
@@ -167,7 +174,29 @@ export function LeadTable() {
       return;
     }
 
-    setLeads(data);
+    // Apply stored sort configuration to the fetched data
+    let sortedData = [...data];
+    if (sortConfig.column && sortConfig.direction !== "none") {
+      sortedData.sort((a, b) => {
+        const aValue = a[sortConfig.column!];
+        const bValue = b[sortConfig.column!];
+
+        if (aValue === null) return sortConfig.direction === "asc" ? 1 : -1;
+        if (bValue === null) return sortConfig.direction === "asc" ? -1 : 1;
+
+        if (typeof aValue === "string" && typeof bValue === "string") {
+          return sortConfig.direction === "asc"
+            ? aValue.localeCompare(bValue)
+            : bValue.localeCompare(aValue);
+        }
+
+        return sortConfig.direction === "asc"
+          ? (aValue as number) - (bValue as number)
+          : (bValue as number) - (aValue as number);
+      });
+    }
+
+    setLeads(sortedData);
   };
 
   const toggleAll = () => {
@@ -452,7 +481,9 @@ export function LeadTable() {
       else direction = "asc";
     }
 
-    setSortConfig({ column, direction });
+    const newSortConfig = { column, direction };
+    setSortConfig(newSortConfig);
+    localStorage.setItem("leadsTableSort", JSON.stringify(newSortConfig));
 
     if (direction === "none") {
       fetchLeads();
