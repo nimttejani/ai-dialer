@@ -38,6 +38,7 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  RefreshCw,
 } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 import { Lead } from "@/lib/supabase";
@@ -166,10 +167,19 @@ export function LeadTable() {
   }, []);
 
   const fetchLeads = async () => {
-    const { data, error } = await supabase
-      .from("leads")
-      .select("*")
-      .order("created_at", { ascending: false });
+    let query = supabase.from("leads").select("*");
+
+    // Apply sort configuration to the query if it exists
+    if (sortConfig.column && sortConfig.direction !== "none") {
+      query = query.order(sortConfig.column, {
+        ascending: sortConfig.direction === "asc",
+      });
+    } else {
+      // Default sort by created_at if no sort config
+      query = query.order("created_at", { ascending: false });
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       toast({
@@ -180,29 +190,7 @@ export function LeadTable() {
       return;
     }
 
-    // Apply stored sort configuration to the fetched data
-    let sortedData = [...data];
-    if (sortConfig.column && sortConfig.direction !== "none") {
-      sortedData.sort((a, b) => {
-        const aValue = a[sortConfig.column!];
-        const bValue = b[sortConfig.column!];
-
-        if (aValue === null) return sortConfig.direction === "asc" ? 1 : -1;
-        if (bValue === null) return sortConfig.direction === "asc" ? -1 : 1;
-
-        if (typeof aValue === "string" && typeof bValue === "string") {
-          return sortConfig.direction === "asc"
-            ? aValue.localeCompare(bValue)
-            : bValue.localeCompare(aValue);
-        }
-
-        return sortConfig.direction === "asc"
-          ? (aValue as number) - (bValue as number)
-          : (bValue as number) - (aValue as number);
-      });
-    }
-
-    setLeads(sortedData);
+    setLeads(data);
   };
 
   const toggleAll = () => {
@@ -687,7 +675,15 @@ export function LeadTable() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <div className="space-x-2">
+        <div className="space-x-2 flex items-center">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={fetchLeads}
+            title="Refresh leads"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
           <Button onClick={() => setIsAddingLead(true)}>
             <PlusCircle className="w-4 h-4 mr-2" />
             Add Lead
