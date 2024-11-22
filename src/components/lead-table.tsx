@@ -32,10 +32,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PlusCircle, Upload } from "lucide-react";
+import { PlusCircle, Upload, ArrowUpDown } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 import { Lead } from "@/lib/supabase";
 import { supabase } from "@/lib/supabase";
+import { type SortDirection } from "@/lib/types";
 
 const statusStyles = {
   pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80",
@@ -116,6 +117,11 @@ function CSVPreviewDialog({
   );
 }
 
+type SortConfig = {
+  column: keyof Lead | null;
+  direction: SortDirection;
+};
+
 export function LeadTable() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
@@ -131,6 +137,10 @@ export function LeadTable() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [csvPreviewData, setCSVPreviewData] = useState<CSVPreviewData[]>([]);
   const [showCSVPreview, setShowCSVPreview] = useState(false);
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    column: null,
+    direction: "none",
+  });
 
   useEffect(() => {
     if (editingCell && inputRef.current) {
@@ -213,10 +223,6 @@ export function LeadTable() {
     ) {
       setEditingCell({ id, field });
     }
-  };
-
-  const handleCellBlur = () => {
-    setEditingCell(null);
   };
 
   const handleInputChange = (
@@ -437,16 +443,46 @@ export function LeadTable() {
     });
   };
 
+  const handleSort = (column: keyof Lead) => {
+    let direction: SortDirection = "asc";
+
+    if (sortConfig.column === column) {
+      if (sortConfig.direction === "asc") direction = "desc";
+      else if (sortConfig.direction === "desc") direction = "none";
+      else direction = "asc";
+    }
+
+    setSortConfig({ column, direction });
+
+    if (direction === "none") {
+      fetchLeads();
+      return;
+    }
+
+    const sortedLeads = [...leads].sort((a, b) => {
+      const aValue = a[column];
+      const bValue = b[column];
+
+      if (aValue === null) return direction === "asc" ? 1 : -1;
+      if (bValue === null) return direction === "asc" ? -1 : 1;
+
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return direction === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      return direction === "asc"
+        ? (aValue as number) - (bValue as number)
+        : (bValue as number) - (aValue as number);
+    });
+
+    setLeads(sortedLeads);
+  };
+
   const renderCell = (lead: Lead, field: keyof Lead) => {
     const isEditing =
       editingCell?.id === lead.id && editingCell?.field === field;
-    const isEditable = ![
-      "id",
-      "call_attempts",
-      "last_called_at",
-      "created_at",
-      "updated_at",
-    ].includes(field);
 
     if (isEditing) {
       if (field === "status") {
@@ -499,16 +535,33 @@ export function LeadTable() {
       <TableRow>
         <TableHead className="w-[50px]">
           <Checkbox
-            checked={selectedLeads.length === leads.length}
+            checked={leads.length > 0 && selectedLeads.length === leads.length}
             onCheckedChange={toggleAll}
+            disabled={leads.length === 0}
           />
         </TableHead>
         {Object.entries(FIELD_MAPPINGS).map(([key]) => (
           <TableHead
             key={key}
-            className={key === "call_attempts" ? "text-center" : ""}
+            className={`${
+              key === "call_attempts" ? "text-center" : ""
+            } cursor-pointer select-none`}
+            onClick={() => handleSort(key as keyof Lead)}
           >
-            {FIELD_MAPPINGS[key as keyof typeof FIELD_MAPPINGS]}
+            <div className="flex items-center justify-between">
+              {FIELD_MAPPINGS[key as keyof typeof FIELD_MAPPINGS]}
+              <ArrowUpDown
+                className={`ml-1 h-4 w-4 ${
+                  sortConfig.column === key
+                    ? sortConfig.direction === "asc"
+                      ? "text-primary"
+                      : sortConfig.direction === "desc"
+                      ? "text-primary rotate-180"
+                      : "text-muted-foreground"
+                    : "text-muted-foreground"
+                }`}
+              />
+            </div>
           </TableHead>
         ))}
       </TableRow>
@@ -517,64 +570,80 @@ export function LeadTable() {
 
   const renderTableBody = () => (
     <TableBody>
-      {isAddingLead && (
+      {leads.length === 0 ? (
         <TableRow>
-          <TableCell colSpan={7}>
-            <div className="flex items-center space-x-2">
-              <Input
-                placeholder="Company Name"
-                value={newLead.company_name || ""}
-                onChange={(e) =>
-                  setNewLead({ ...newLead, company_name: e.target.value })
-                }
-              />
-              <Input
-                placeholder="Phone"
-                value={newLead.phone || ""}
-                onChange={(e) =>
-                  setNewLead({ ...newLead, phone: e.target.value })
-                }
-              />
-              <Input
-                placeholder="Email"
-                value={newLead.email || ""}
-                onChange={(e) =>
-                  setNewLead({ ...newLead, email: e.target.value })
-                }
-              />
-              <Button onClick={handleAddLead}>Add</Button>
-              <Button variant="outline" onClick={() => setIsAddingLead(false)}>
-                Cancel
-              </Button>
-            </div>
+          <TableCell
+            colSpan={7}
+            className="h-24 text-center text-muted-foreground"
+          >
+            No leads available. Add a new lead or import from CSV.
           </TableCell>
         </TableRow>
-      )}
-      {leads.map((lead) => (
-        <TableRow key={lead.id}>
-          <TableCell>
-            <Checkbox
-              checked={selectedLeads.includes(lead.id)}
-              onCheckedChange={() => toggleLead(lead.id)}
-            />
-          </TableCell>
-          {Object.keys(FIELD_MAPPINGS).map((field) => (
-            <TableCell
-              key={field}
-              onClick={() => handleCellClick(lead.id, field as keyof Lead)}
-              className={`${
-                !["call_attempts", "last_called_at"].includes(field)
-                  ? "cursor-text"
-                  : "cursor-not-allowed"
-              } p-0`}
-            >
-              <div className="px-4 py-2 min-h-[2.5rem] flex items-center">
-                {renderCell(lead, field as keyof Lead)}
-              </div>
-            </TableCell>
+      ) : (
+        <>
+          {isAddingLead && (
+            <TableRow>
+              <TableCell colSpan={7}>
+                <div className="flex items-center space-x-2">
+                  <Input
+                    placeholder="Company Name"
+                    value={newLead.company_name || ""}
+                    onChange={(e) =>
+                      setNewLead({ ...newLead, company_name: e.target.value })
+                    }
+                  />
+                  <Input
+                    placeholder="Phone"
+                    value={newLead.phone || ""}
+                    onChange={(e) =>
+                      setNewLead({ ...newLead, phone: e.target.value })
+                    }
+                  />
+                  <Input
+                    placeholder="Email"
+                    value={newLead.email || ""}
+                    onChange={(e) =>
+                      setNewLead({ ...newLead, email: e.target.value })
+                    }
+                  />
+                  <Button onClick={handleAddLead}>Add</Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsAddingLead(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          )}
+          {leads.map((lead) => (
+            <TableRow key={lead.id}>
+              <TableCell>
+                <Checkbox
+                  checked={selectedLeads.includes(lead.id)}
+                  onCheckedChange={() => toggleLead(lead.id)}
+                />
+              </TableCell>
+              {Object.keys(FIELD_MAPPINGS).map((field) => (
+                <TableCell
+                  key={field}
+                  onClick={() => handleCellClick(lead.id, field as keyof Lead)}
+                  className={`${
+                    !["call_attempts", "last_called_at"].includes(field)
+                      ? "cursor-text"
+                      : "cursor-not-allowed"
+                  } p-0`}
+                >
+                  <div className="px-4 py-2 min-h-[2.5rem] flex items-center">
+                    {renderCell(lead, field as keyof Lead)}
+                  </div>
+                </TableCell>
+              ))}
+            </TableRow>
           ))}
-        </TableRow>
-      ))}
+        </>
+      )}
     </TableBody>
   );
 
