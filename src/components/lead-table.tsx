@@ -32,7 +32,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PlusCircle, Upload, ArrowUpDown } from "lucide-react";
+import {
+  PlusCircle,
+  Upload,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+} from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 import { Lead } from "@/lib/supabase";
 import { supabase } from "@/lib/supabase";
@@ -579,19 +585,19 @@ export function LeadTable() {
             } cursor-pointer select-none`}
             onClick={() => handleSort(key as keyof Lead)}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              {sortConfig.column === key ? (
+                sortConfig.direction === "asc" ? (
+                  <ArrowUp className="h-4 w-4 text-primary" />
+                ) : sortConfig.direction === "desc" ? (
+                  <ArrowDown className="h-4 w-4 text-primary" />
+                ) : (
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                )
+              ) : (
+                <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+              )}
               {FIELD_MAPPINGS[key as keyof typeof FIELD_MAPPINGS]}
-              <ArrowUpDown
-                className={`ml-1 h-4 w-4 ${
-                  sortConfig.column === key
-                    ? sortConfig.direction === "asc"
-                      ? "text-primary"
-                      : sortConfig.direction === "desc"
-                      ? "text-primary rotate-180"
-                      : "text-muted-foreground"
-                    : "text-muted-foreground"
-                }`}
-              />
             </div>
           </TableHead>
         ))}
