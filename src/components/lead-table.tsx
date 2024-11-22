@@ -34,55 +34,8 @@ import {
 } from "@/components/ui/select";
 import { PlusCircle, Upload } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
-
-interface Lead {
-  id: number;
-  companyName: string;
-  phone: string;
-  email: string;
-  status: "pending" | "scheduled" | "no_answer" | "not_interested";
-  callAttempts: number;
-  lastCalledAt: string | null;
-}
-
-const initialLeads: Lead[] = [
-  {
-    id: 1,
-    companyName: "ABC HVAC",
-    phone: "123-456-7890",
-    email: "info@abchvac.com",
-    status: "pending",
-    callAttempts: 0,
-    lastCalledAt: null,
-  },
-  {
-    id: 2,
-    companyName: "Cool Air Services",
-    phone: "987-654-3210",
-    email: "contact@coolair.com",
-    status: "scheduled",
-    callAttempts: 1,
-    lastCalledAt: "2023-06-15T11:30:00",
-  },
-  {
-    id: 3,
-    companyName: "Comfort Zone HVAC",
-    phone: "555-123-4567",
-    email: "sales@comfortzone.com",
-    status: "no_answer",
-    callAttempts: 2,
-    lastCalledAt: "2023-06-14T15:45:00",
-  },
-  {
-    id: 4,
-    companyName: "Frosty Tech",
-    phone: "111-222-3333",
-    email: "support@frostytech.com",
-    status: "not_interested",
-    callAttempts: 1,
-    lastCalledAt: "2023-06-13T10:15:00",
-  },
-];
+import { Lead } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 const statusStyles = {
   pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80",
@@ -91,12 +44,22 @@ const statusStyles = {
   not_interested: "bg-red-100 text-red-800 hover:bg-red-100/80",
 };
 
+// First, let's define a mapping of display fields to database fields
+const FIELD_MAPPINGS = {
+  company_name: "Company Name",
+  phone: "Phone",
+  email: "Email",
+  status: "Status",
+  call_attempts: "Call Attempts",
+  last_called_at: "Last Called At",
+} as const;
+
 export function LeadTable() {
-  const [leads, setLeads] = useState<Lead[]>(initialLeads);
-  const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingCell, setEditingCell] = useState<{
-    id: number;
+    id: string;
     field: keyof Lead;
   } | null>(null);
   const [isAddingLead, setIsAddingLead] = useState(false);
@@ -111,15 +74,37 @@ export function LeadTable() {
     }
   }, [editingCell]);
 
+  useEffect(() => {
+    fetchLeads();
+  }, []);
+
+  const fetchLeads = async () => {
+    const { data, error } = await supabase
+      .from("leads")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      toast({
+        title: "Error fetching leads",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLeads(data);
+  };
+
   const toggleAll = () => {
     if (selectedLeads.length === leads.length) {
       setSelectedLeads([]);
     } else {
-      setSelectedLeads(leads.map((lead) => lead.id));
+      setSelectedLeads(leads.map((lead) => lead.id.toString()));
     }
   };
 
-  const toggleLead = (id: number) => {
+  const toggleLead = (id: string) => {
     if (selectedLeads.includes(id)) {
       setSelectedLeads(selectedLeads.filter((leadId) => leadId !== id));
     } else {
@@ -132,8 +117,22 @@ export function LeadTable() {
     return formatDateTime(date);
   };
 
-  const handleDelete = () => {
-    setLeads(leads.filter((lead) => !selectedLeads.includes(lead.id)));
+  const handleDelete = async () => {
+    const { error } = await supabase
+      .from("leads")
+      .delete()
+      .in("id", selectedLeads);
+
+    if (error) {
+      toast({
+        title: "Error deleting leads",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await fetchLeads();
     setSelectedLeads([]);
     setIsDeleteDialogOpen(false);
     toast({
@@ -142,8 +141,12 @@ export function LeadTable() {
     });
   };
 
-  const handleCellClick = (id: number, field: keyof Lead) => {
-    if (field !== "callAttempts" && field !== "lastCalledAt") {
+  const handleCellClick = (id: string, field: keyof Lead) => {
+    if (
+      !["call_attempts", "last_called_at", "created_at", "updated_at"].includes(
+        field
+      )
+    ) {
       setEditingCell({ id, field });
     }
   };
@@ -154,16 +157,57 @@ export function LeadTable() {
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    id: number,
+    id: string,
     field: keyof Lead
   ) => {
+    const value = e.target.value;
     const updatedLeads = leads.map((lead) =>
-      lead.id === id ? { ...lead, [field]: e.target.value } : lead
+      lead.id === id ? { ...lead, [field]: value } : lead
     );
     setLeads(updatedLeads);
   };
 
-  const handleStatusChange = (value: Lead["status"], id: number) => {
+  const handleInputBlur = async (
+    id: string,
+    field: keyof Lead,
+    value: string
+  ) => {
+    const { error } = await supabase
+      .from("leads")
+      .update({ [field]: value, updated_at: new Date().toISOString() })
+      .eq("id", id);
+
+    if (error) {
+      toast({
+        title: "Error updating lead",
+        description: error.message,
+        variant: "destructive",
+      });
+      await fetchLeads();
+      return;
+    }
+
+    setEditingCell(null);
+  };
+
+  const handleStatusChange = async (value: Lead["status"], id: string) => {
+    const { error } = await supabase
+      .from("leads")
+      .update({
+        status: value,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (error) {
+      toast({
+        title: "Error updating status",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
     const updatedLeads = leads.map((lead) =>
       lead.id === id ? { ...lead, status: value } : lead
     );
@@ -171,19 +215,31 @@ export function LeadTable() {
     setEditingCell(null);
   };
 
-  const handleAddLead = () => {
-    if (newLead.companyName && newLead.phone && newLead.email) {
-      const newLeadWithDefaults: Lead = {
-        id: leads.length + 1,
-        companyName: newLead.companyName,
+  const handleAddLead = async () => {
+    if (newLead.company_name && newLead.phone && newLead.email) {
+      const newLeadData = {
+        company_name: newLead.company_name,
         phone: newLead.phone,
         email: newLead.email,
-        status: "pending",
-        callAttempts: 0,
-        lastCalledAt: null,
-        ...newLead,
+        status: "pending" as const,
+        call_attempts: 0,
+        last_called_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
-      setLeads([...leads, newLeadWithDefaults]);
+
+      const { error } = await supabase.from("leads").insert([newLeadData]);
+
+      if (error) {
+        toast({
+          title: "Error adding lead",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await fetchLeads();
       setNewLead({});
       setIsAddingLead(false);
       toast({
@@ -227,9 +283,15 @@ export function LeadTable() {
   };
 
   const renderCell = (lead: Lead, field: keyof Lead) => {
-    const isEditable = field !== "callAttempts" && field !== "lastCalledAt";
     const isEditing =
       editingCell?.id === lead.id && editingCell?.field === field;
+    const isEditable = ![
+      "id",
+      "call_attempts",
+      "last_called_at",
+      "created_at",
+      "updated_at",
+    ].includes(field);
 
     if (isEditing) {
       if (field === "status") {
@@ -257,25 +319,109 @@ export function LeadTable() {
             ref={inputRef}
             value={lead[field] as string}
             onChange={(e) => handleInputChange(e, lead.id, field)}
-            onBlur={handleCellBlur}
+            onBlur={(e) => handleInputBlur(lead.id, field, e.target.value)}
             className="w-full h-full p-0 border-none focus:ring-0"
           />
         );
       }
+    }
+
+    if (field === "status") {
+      return (
+        <Badge className={statusStyles[lead.status]}>
+          {lead.status.replace("_", " ")}
+        </Badge>
+      );
+    } else if (field === "last_called_at") {
+      return formatDate(lead[field]);
     } else {
-      if (field === "status") {
-        return (
-          <Badge className={statusStyles[lead.status]}>
-            {lead.status.replace("_", " ")}
-          </Badge>
-        );
-      } else if (field === "lastCalledAt") {
-        return formatDate(lead[field]);
-      } else {
-        return lead[field];
-      }
+      return lead[field];
     }
   };
+
+  const renderTableHeader = () => (
+    <TableHeader>
+      <TableRow>
+        <TableHead className="w-[50px]">
+          <Checkbox
+            checked={selectedLeads.length === leads.length}
+            onCheckedChange={toggleAll}
+          />
+        </TableHead>
+        {Object.entries(FIELD_MAPPINGS).map(([key]) => (
+          <TableHead
+            key={key}
+            className={key === "call_attempts" ? "text-center" : ""}
+          >
+            {FIELD_MAPPINGS[key as keyof typeof FIELD_MAPPINGS]}
+          </TableHead>
+        ))}
+      </TableRow>
+    </TableHeader>
+  );
+
+  const renderTableBody = () => (
+    <TableBody>
+      {isAddingLead && (
+        <TableRow>
+          <TableCell colSpan={7}>
+            <div className="flex items-center space-x-2">
+              <Input
+                placeholder="Company Name"
+                value={newLead.company_name || ""}
+                onChange={(e) =>
+                  setNewLead({ ...newLead, company_name: e.target.value })
+                }
+              />
+              <Input
+                placeholder="Phone"
+                value={newLead.phone || ""}
+                onChange={(e) =>
+                  setNewLead({ ...newLead, phone: e.target.value })
+                }
+              />
+              <Input
+                placeholder="Email"
+                value={newLead.email || ""}
+                onChange={(e) =>
+                  setNewLead({ ...newLead, email: e.target.value })
+                }
+              />
+              <Button onClick={handleAddLead}>Add</Button>
+              <Button variant="outline" onClick={() => setIsAddingLead(false)}>
+                Cancel
+              </Button>
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
+      {leads.map((lead) => (
+        <TableRow key={lead.id}>
+          <TableCell>
+            <Checkbox
+              checked={selectedLeads.includes(lead.id)}
+              onCheckedChange={() => toggleLead(lead.id)}
+            />
+          </TableCell>
+          {Object.keys(FIELD_MAPPINGS).map((field) => (
+            <TableCell
+              key={field}
+              onClick={() => handleCellClick(lead.id, field as keyof Lead)}
+              className={`${
+                !["call_attempts", "last_called_at"].includes(field)
+                  ? "cursor-text"
+                  : "cursor-not-allowed"
+              } p-0`}
+            >
+              <div className="px-4 py-2 min-h-[2.5rem] flex items-center">
+                {renderCell(lead, field as keyof Lead)}
+              </div>
+            </TableCell>
+          ))}
+        </TableRow>
+      ))}
+    </TableBody>
+  );
 
   return (
     <div className="space-y-4">
@@ -331,90 +477,8 @@ export function LeadTable() {
       </div>
       <div className="border rounded-md">
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[50px]">
-                <Checkbox
-                  checked={selectedLeads.length === leads.length}
-                  onCheckedChange={toggleAll}
-                />
-              </TableHead>
-              <TableHead>Company Name</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-center">Call Attempts</TableHead>
-              <TableHead>Last Called At</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isAddingLead && (
-              <TableRow>
-                <TableCell colSpan={7}>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      placeholder="Company Name"
-                      value={newLead.companyName || ""}
-                      onChange={(e) =>
-                        setNewLead({ ...newLead, companyName: e.target.value })
-                      }
-                    />
-                    <Input
-                      placeholder="Phone"
-                      value={newLead.phone || ""}
-                      onChange={(e) =>
-                        setNewLead({ ...newLead, phone: e.target.value })
-                      }
-                    />
-                    <Input
-                      placeholder="Email"
-                      value={newLead.email || ""}
-                      onChange={(e) =>
-                        setNewLead({ ...newLead, email: e.target.value })
-                      }
-                    />
-                    <Button onClick={handleAddLead}>Add</Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsAddingLead(false)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
-            {leads.map((lead) => (
-              <TableRow key={lead.id}>
-                <TableCell>
-                  <Checkbox
-                    checked={selectedLeads.includes(lead.id)}
-                    onCheckedChange={() => toggleLead(lead.id)}
-                  />
-                </TableCell>
-                {(Object.keys(lead) as Array<keyof Lead>).map((field) => {
-                  if (field !== "id") {
-                    const isEditable =
-                      field !== "callAttempts" && field !== "lastCalledAt";
-                    return (
-                      <TableCell
-                        key={field}
-                        onClick={() => handleCellClick(lead.id, field)}
-                        className={`${
-                          isEditable ? "cursor-text" : "cursor-not-allowed"
-                        } p-0`}
-                      >
-                        <div className="px-4 py-2 min-h-[2.5rem] flex items-center">
-                          {renderCell(lead, field)}
-                        </div>
-                      </TableCell>
-                    );
-                  }
-                  return null;
-                })}
-              </TableRow>
-            ))}
-          </TableBody>
+          {renderTableHeader()}
+          {renderTableBody()}
         </Table>
       </div>
     </div>
