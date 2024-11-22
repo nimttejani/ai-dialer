@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
-import { Checkbox } from "@/components/ui/checkbox"
+import { useState, useRef, useEffect } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -9,11 +9,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { 
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -23,25 +23,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { useToast } from "@/components/ui/use-toast"
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { PlusCircle, Upload } from 'lucide-react'
+} from "@/components/ui/select";
+import { PlusCircle, Upload } from "lucide-react";
+import { formatDateTime } from "@/lib/utils";
 
 interface Lead {
-  id: number
-  companyName: string
-  phone: string
-  email: string
-  status: "pending" | "scheduled" | "no_answer" | "not_interested"
-  callAttempts: number
-  lastCalledAt: string | null
+  id: number;
+  companyName: string;
+  phone: string;
+  email: string;
+  status: "pending" | "scheduled" | "no_answer" | "not_interested";
+  callAttempts: number;
+  lastCalledAt: string | null;
 }
 
 const initialLeads: Lead[] = [
@@ -81,87 +82,94 @@ const initialLeads: Lead[] = [
     callAttempts: 1,
     lastCalledAt: "2023-06-13T10:15:00",
   },
-]
+];
 
 const statusStyles = {
   pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80",
   scheduled: "bg-green-100 text-green-800 hover:bg-green-100/80",
   no_answer: "bg-gray-100 text-gray-800 hover:bg-gray-100/80",
   not_interested: "bg-red-100 text-red-800 hover:bg-red-100/80",
-}
+};
 
 export function LeadTable() {
-  const [leads, setLeads] = useState<Lead[]>(initialLeads)
-  const [selectedLeads, setSelectedLeads] = useState<number[]>([])
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [editingCell, setEditingCell] = useState<{ id: number; field: keyof Lead } | null>(null)
-  const [isAddingLead, setIsAddingLead] = useState(false)
-  const [newLead, setNewLead] = useState<Partial<Lead>>({})
-  const { toast } = useToast()
-  const inputRef = useRef<HTMLInputElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [leads, setLeads] = useState<Lead[]>(initialLeads);
+  const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [editingCell, setEditingCell] = useState<{
+    id: number;
+    field: keyof Lead;
+  } | null>(null);
+  const [isAddingLead, setIsAddingLead] = useState(false);
+  const [newLead, setNewLead] = useState<Partial<Lead>>({});
+  const { toast } = useToast();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (editingCell && inputRef.current) {
-      inputRef.current.focus()
+      inputRef.current.focus();
     }
-  }, [editingCell])
+  }, [editingCell]);
 
   const toggleAll = () => {
     if (selectedLeads.length === leads.length) {
-      setSelectedLeads([])
+      setSelectedLeads([]);
     } else {
-      setSelectedLeads(leads.map(lead => lead.id))
+      setSelectedLeads(leads.map((lead) => lead.id));
     }
-  }
+  };
 
   const toggleLead = (id: number) => {
     if (selectedLeads.includes(id)) {
-      setSelectedLeads(selectedLeads.filter(leadId => leadId !== id))
+      setSelectedLeads(selectedLeads.filter((leadId) => leadId !== id));
     } else {
-      setSelectedLeads([...selectedLeads, id])
+      setSelectedLeads([...selectedLeads, id]);
     }
-  }
+  };
 
   const formatDate = (date: string | null) => {
-    if (!date) return "N/A"
-    return new Date(date).toLocaleString()
-  }
+    if (!date) return "N/A";
+    return formatDateTime(date);
+  };
 
   const handleDelete = () => {
-    setLeads(leads.filter(lead => !selectedLeads.includes(lead.id)))
-    setSelectedLeads([])
-    setIsDeleteDialogOpen(false)
+    setLeads(leads.filter((lead) => !selectedLeads.includes(lead.id)));
+    setSelectedLeads([]);
+    setIsDeleteDialogOpen(false);
     toast({
       title: "Leads deleted",
       description: `${selectedLeads.length} lead(s) have been deleted.`,
-    })
-  }
+    });
+  };
 
   const handleCellClick = (id: number, field: keyof Lead) => {
-    if (field !== 'callAttempts' && field !== 'lastCalledAt') {
-      setEditingCell({ id, field })
+    if (field !== "callAttempts" && field !== "lastCalledAt") {
+      setEditingCell({ id, field });
     }
-  }
+  };
 
   const handleCellBlur = () => {
-    setEditingCell(null)
-  }
+    setEditingCell(null);
+  };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, id: number, field: keyof Lead) => {
-    const updatedLeads = leads.map(lead =>
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    id: number,
+    field: keyof Lead
+  ) => {
+    const updatedLeads = leads.map((lead) =>
       lead.id === id ? { ...lead, [field]: e.target.value } : lead
-    )
-    setLeads(updatedLeads)
-  }
+    );
+    setLeads(updatedLeads);
+  };
 
-  const handleStatusChange = (value: Lead['status'], id: number) => {
-    const updatedLeads = leads.map(lead =>
+  const handleStatusChange = (value: Lead["status"], id: number) => {
+    const updatedLeads = leads.map((lead) =>
       lead.id === id ? { ...lead, status: value } : lead
-    )
-    setLeads(updatedLeads)
-    setEditingCell(null)
-  }
+    );
+    setLeads(updatedLeads);
+    setEditingCell(null);
+  };
 
   const handleAddLead = () => {
     if (newLead.companyName && newLead.phone && newLead.email) {
@@ -174,57 +182,63 @@ export function LeadTable() {
         callAttempts: 0,
         lastCalledAt: null,
         ...newLead,
-      }
-      setLeads([...leads, newLeadWithDefaults])
-      setNewLead({})
-      setIsAddingLead(false)
+      };
+      setLeads([...leads, newLeadWithDefaults]);
+      setNewLead({});
+      setIsAddingLead(false);
       toast({
         title: "Lead added",
         description: "New lead has been added successfully.",
-      })
+      });
     }
-  }
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+    const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onload = (e) => {
-        const content = e.target?.result as string
-        const rows = content.split('\n')
-        const headers = rows[0].split(',')
+        const content = e.target?.result as string;
+        const rows = content.split("\n");
+        const headers = rows[0].split(",");
         const newLeads: Lead[] = rows.slice(1).map((row, index) => {
-          const values = row.split(',')
+          const values = row.split(",");
           return {
             id: leads.length + index + 1,
-            companyName: values[headers.indexOf('companyName')] || '',
-            phone: values[headers.indexOf('phone')] || '',
-            email: values[headers.indexOf('email')] || '',
-            status: (values[headers.indexOf('status')] as Lead['status']) || 'pending',
-            callAttempts: parseInt(values[headers.indexOf('callAttempts')]) || 0,
-            lastCalledAt: values[headers.indexOf('lastCalledAt')] || null,
-          }
-        })
-        setLeads([...leads, ...newLeads])
+            companyName: values[headers.indexOf("companyName")] || "",
+            phone: values[headers.indexOf("phone")] || "",
+            email: values[headers.indexOf("email")] || "",
+            status:
+              (values[headers.indexOf("status")] as Lead["status"]) ||
+              "pending",
+            callAttempts:
+              parseInt(values[headers.indexOf("callAttempts")]) || 0,
+            lastCalledAt: values[headers.indexOf("lastCalledAt")] || null,
+          };
+        });
+        setLeads([...leads, ...newLeads]);
         toast({
           title: "CSV imported",
           description: `${newLeads.length} lead(s) have been imported.`,
-        })
-      }
-      reader.readAsText(file)
+        });
+      };
+      reader.readAsText(file);
     }
-  }
+  };
 
   const renderCell = (lead: Lead, field: keyof Lead) => {
-    const isEditable = field !== 'callAttempts' && field !== 'lastCalledAt'
-    const isEditing = editingCell?.id === lead.id && editingCell?.field === field
+    const isEditable = field !== "callAttempts" && field !== "lastCalledAt";
+    const isEditing =
+      editingCell?.id === lead.id && editingCell?.field === field;
 
     if (isEditing) {
-      if (field === 'status') {
+      if (field === "status") {
         return (
           <Select
             value={lead[field]}
-            onValueChange={(value) => handleStatusChange(value as Lead['status'], lead.id)}
+            onValueChange={(value) =>
+              handleStatusChange(value as Lead["status"], lead.id)
+            }
           >
             <SelectTrigger className="w-full">
               <SelectValue>{lead[field]}</SelectValue>
@@ -236,7 +250,7 @@ export function LeadTable() {
               <SelectItem value="not_interested">Not Interested</SelectItem>
             </SelectContent>
           </Select>
-        )
+        );
       } else {
         return (
           <Input
@@ -246,22 +260,22 @@ export function LeadTable() {
             onBlur={handleCellBlur}
             className="w-full h-full p-0 border-none focus:ring-0"
           />
-        )
+        );
       }
     } else {
-      if (field === 'status') {
+      if (field === "status") {
         return (
           <Badge className={statusStyles[lead.status]}>
             {lead.status.replace("_", " ")}
           </Badge>
-        )
-      } else if (field === 'lastCalledAt') {
-        return formatDate(lead[field])
+        );
+      } else if (field === "lastCalledAt") {
+        return formatDate(lead[field]);
       } else {
-        return lead[field]
+        return lead[field];
       }
     }
-  }
+  };
 
   return (
     <div className="space-y-4">
@@ -284,7 +298,10 @@ export function LeadTable() {
           />
         </div>
         {selectedLeads.length > 0 && (
-          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialog
+            open={isDeleteDialogOpen}
+            onOpenChange={setIsDeleteDialogOpen}
+          >
             <AlertDialogTrigger asChild>
               <Button
                 variant="destructive"
@@ -298,12 +315,15 @@ export function LeadTable() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete {selectedLeads.length} selected lead(s).
+                  This action cannot be undone. This will permanently delete{" "}
+                  {selectedLeads.length} selected lead(s).
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                <AlertDialogAction onClick={handleDelete}>
+                  Delete
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -334,21 +354,32 @@ export function LeadTable() {
                   <div className="flex items-center space-x-2">
                     <Input
                       placeholder="Company Name"
-                      value={newLead.companyName || ''}
-                      onChange={(e) => setNewLead({ ...newLead, companyName: e.target.value })}
+                      value={newLead.companyName || ""}
+                      onChange={(e) =>
+                        setNewLead({ ...newLead, companyName: e.target.value })
+                      }
                     />
                     <Input
                       placeholder="Phone"
-                      value={newLead.phone || ''}
-                      onChange={(e) => setNewLead({ ...newLead, phone: e.target.value })}
+                      value={newLead.phone || ""}
+                      onChange={(e) =>
+                        setNewLead({ ...newLead, phone: e.target.value })
+                      }
                     />
                     <Input
                       placeholder="Email"
-                      value={newLead.email || ''}
-                      onChange={(e) => setNewLead({ ...newLead, email: e.target.value })}
+                      value={newLead.email || ""}
+                      onChange={(e) =>
+                        setNewLead({ ...newLead, email: e.target.value })
+                      }
                     />
                     <Button onClick={handleAddLead}>Add</Button>
-                    <Button variant="outline" onClick={() => setIsAddingLead(false)}>Cancel</Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsAddingLead(false)}
+                    >
+                      Cancel
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -362,21 +393,24 @@ export function LeadTable() {
                   />
                 </TableCell>
                 {(Object.keys(lead) as Array<keyof Lead>).map((field) => {
-                  if (field !== 'id') {
-                    const isEditable = field !== 'callAttempts' && field !== 'lastCalledAt'
+                  if (field !== "id") {
+                    const isEditable =
+                      field !== "callAttempts" && field !== "lastCalledAt";
                     return (
                       <TableCell
                         key={field}
                         onClick={() => handleCellClick(lead.id, field)}
-                        className={`${isEditable ? "cursor-text" : "cursor-not-allowed"} p-0`}
+                        className={`${
+                          isEditable ? "cursor-text" : "cursor-not-allowed"
+                        } p-0`}
                       >
                         <div className="px-4 py-2 min-h-[2.5rem] flex items-center">
                           {renderCell(lead, field)}
                         </div>
                       </TableCell>
-                    )
+                    );
                   }
-                  return null
+                  return null;
                 })}
               </TableRow>
             ))}
@@ -384,6 +418,5 @@ export function LeadTable() {
         </Table>
       </div>
     </div>
-  )
+  );
 }
-
