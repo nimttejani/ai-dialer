@@ -43,7 +43,7 @@ import {
 import { formatDateTime } from "@/lib/utils";
 import { Lead } from "@/lib/supabase";
 import { supabase } from "@/lib/supabase";
-import { type SortDirection } from "@/lib/types";
+import { type SortDirection, type SortCriterion } from "@/lib/types";
 
 const statusStyles = {
   pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80",
@@ -124,18 +124,7 @@ function CSVPreviewDialog({
   );
 }
 
-type SortConfig = {
-  column: keyof Lead | null;
-  direction: SortDirection;
-};
-
-// Add this new function near the top of the component
-const getStoredSortConfig = (): SortConfig => {
-  if (typeof window === "undefined") return { column: null, direction: "none" };
-
-  const stored = localStorage.getItem("leadsTableSort");
-  return stored ? JSON.parse(stored) : { column: null, direction: "none" };
-};
+type SortConfig = SortCriterion[];
 
 export function LeadTable() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -152,9 +141,17 @@ export function LeadTable() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [csvPreviewData, setCSVPreviewData] = useState<CSVPreviewData[]>([]);
   const [showCSVPreview, setShowCSVPreview] = useState(false);
-  const [sortConfig, setSortConfig] = useState<SortConfig>(
-    getStoredSortConfig()
-  );
+  const [sortConfig, setSortConfig] = useState<SortConfig>([]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("leadsTableSort");
+    try {
+      const parsed = stored ? JSON.parse(stored) : [];
+      setSortConfig(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      setSortConfig([]);
+    }
+  }, []);
 
   useEffect(() => {
     if (editingCell && inputRef.current) {
@@ -167,19 +164,10 @@ export function LeadTable() {
   }, []);
 
   const fetchLeads = async () => {
-    let query = supabase.from("leads").select("*");
-
-    // Apply sort configuration to the query if it exists
-    if (sortConfig.column && sortConfig.direction !== "none") {
-      query = query.order(sortConfig.column, {
-        ascending: sortConfig.direction === "asc",
-      });
-    } else {
-      // Default sort by created_at if no sort config
-      query = query.order("created_at", { ascending: false });
-    }
-
-    const { data, error } = await query;
+    const { data, error } = await supabase
+      .from("leads")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if (error) {
       toast({
@@ -467,43 +455,79 @@ export function LeadTable() {
   };
 
   const handleSort = (column: keyof Lead) => {
-    let direction: SortDirection = "asc";
+    const currentConfig = Array.isArray(sortConfig) ? sortConfig : [];
+    const existingCriterionIndex = currentConfig.findIndex(
+      (c) => c.column === column
+    );
+    const newSortConfig = [...currentConfig];
 
-    if (sortConfig.column === column) {
-      if (sortConfig.direction === "asc") direction = "desc";
-      else if (sortConfig.direction === "desc") direction = "none";
-      else direction = "asc";
+    if (existingCriterionIndex !== -1) {
+      // Update existing criterion
+      const currentDirection = currentConfig[existingCriterionIndex].direction;
+      if (currentDirection === "asc") {
+        newSortConfig[existingCriterionIndex].direction = "desc";
+      } else if (currentDirection === "desc") {
+        // Remove this criterion
+        newSortConfig.splice(existingCriterionIndex, 1);
+      }
+    } else {
+      // Add new criterion
+      newSortConfig.push({ column, direction: "asc" });
     }
 
-    const newSortConfig = { column, direction };
     setSortConfig(newSortConfig);
     localStorage.setItem("leadsTableSort", JSON.stringify(newSortConfig));
+  };
 
-    if (direction === "none") {
-      fetchLeads();
-      return;
+  const getSortedLeads = (leadsToSort: Lead[]): Lead[] => {
+    if (!Array.isArray(sortConfig) || sortConfig.length === 0) {
+      return leadsToSort;
     }
 
-    const sortedLeads = [...leads].sort((a, b) => {
-      const aValue = a[column];
-      const bValue = b[column];
+    return [...leadsToSort].sort((a, b) => {
+      for (const { column, direction } of sortConfig) {
+        const aValue = a[column as keyof Lead];
+        const bValue = b[column as keyof Lead];
 
-      if (aValue === null) return direction === "asc" ? 1 : -1;
-      if (bValue === null) return direction === "asc" ? -1 : 1;
+        // Skip to next sort criterion if values are equal
+        if (aValue === bValue) continue;
 
-      if (typeof aValue === "string" && typeof bValue === "string") {
-        return direction === "asc"
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
+        // Handle null values
+        if (aValue === null) return direction === "asc" ? 1 : -1;
+        if (bValue === null) return direction === "asc" ? -1 : 1;
+
+        // Compare dates
+        if (
+          column === "last_called_at" ||
+          column === "created_at" ||
+          column === "updated_at"
+        ) {
+          const aDate = new Date(aValue as string).getTime();
+          const bDate = new Date(bValue as string).getTime();
+          return direction === "asc" ? aDate - bDate : bDate - aDate;
+        }
+
+        // Compare numbers
+        if (typeof aValue === "number" && typeof bValue === "number") {
+          return direction === "asc" ? aValue - bValue : bValue - aValue;
+        }
+
+        // Compare strings case-insensitively
+        if (typeof aValue === "string" && typeof bValue === "string") {
+          return direction === "asc"
+            ? aValue.localeCompare(bValue, undefined, { sensitivity: "base" })
+            : bValue.localeCompare(aValue, undefined, { sensitivity: "base" });
+        }
+
+        return 0;
       }
-
-      return direction === "asc"
-        ? (aValue as number) - (bValue as number)
-        : (bValue as number) - (aValue as number);
+      return 0;
     });
-
-    setLeads(sortedLeads);
   };
+
+  useEffect(() => {
+    setLeads((prevLeads) => getSortedLeads([...prevLeads]));
+  }, [sortConfig]);
 
   const renderCell = (lead: Lead, field: keyof Lead) => {
     const isEditing =
@@ -565,30 +589,45 @@ export function LeadTable() {
             disabled={leads.length === 0}
           />
         </TableHead>
-        {Object.entries(FIELD_MAPPINGS).map(([key]) => (
-          <TableHead
-            key={key}
-            className={`${
-              key === "call_attempts" ? "text-center" : ""
-            } cursor-pointer select-none`}
-            onClick={() => handleSort(key as keyof Lead)}
-          >
-            <div className="flex items-center gap-1">
-              {sortConfig.column === key ? (
-                sortConfig.direction === "asc" ? (
-                  <ArrowUp className="h-4 w-4 text-primary" />
-                ) : sortConfig.direction === "desc" ? (
-                  <ArrowDown className="h-4 w-4 text-primary" />
-                ) : (
-                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-                )
-              ) : (
-                <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-              )}
-              {FIELD_MAPPINGS[key as keyof typeof FIELD_MAPPINGS]}
-            </div>
-          </TableHead>
-        ))}
+        {Object.entries(FIELD_MAPPINGS).map(([key]) => {
+          const currentConfig = Array.isArray(sortConfig) ? sortConfig : [];
+          const sortCriterion = currentConfig.find((c) => c.column === key);
+          const sortIndex = currentConfig.findIndex((c) => c.column === key);
+
+          return (
+            <TableHead
+              key={key}
+              className={`${
+                key === "call_attempts" ? "text-center" : ""
+              } cursor-pointer select-none text-muted-foreground`}
+              onClick={() => handleSort(key as keyof Lead)}
+            >
+              <div className="flex items-center gap-1">
+                <div className="flex items-center">
+                  {sortCriterion ? (
+                    <div className="flex items-center -space-x-1">
+                      {sortCriterion.direction === "asc" ? (
+                        <ArrowUp className="h-4 w-4" />
+                      ) : (
+                        <ArrowDown className="h-4 w-4" />
+                      )}
+                      {currentConfig.length > 1 && (
+                        <span className="text-xs font-mono translate-y-[1px]">
+                          {sortIndex + 1}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <ArrowUpDown className="h-4 w-4" />
+                  )}
+                </div>
+                <span>
+                  {FIELD_MAPPINGS[key as keyof typeof FIELD_MAPPINGS]}
+                </span>
+              </div>
+            </TableHead>
+          );
+        })}
       </TableRow>
     </TableHeader>
   );
