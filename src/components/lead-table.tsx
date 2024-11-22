@@ -43,7 +43,18 @@ import {
 import { formatDateTime } from "@/lib/utils";
 import { Lead } from "@/lib/supabase";
 import { supabase } from "@/lib/supabase";
-import { type SortDirection, type SortCriterion } from "@/lib/types";
+import {
+  type SortDirection,
+  type SortCriterion,
+  type FilterCriterion,
+} from "@/lib/types";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const statusStyles = {
   pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80",
@@ -126,6 +137,171 @@ function CSVPreviewDialog({
 
 type SortConfig = SortCriterion[];
 
+// Add the HeaderMenuProps interface at the top with other interfaces
+interface HeaderMenuProps {
+  column: string;
+  label: string;
+  sortCriterion?: SortCriterion;
+  filterCriterion?: FilterCriterion;
+  sortConfig: SortConfig;
+  onSortChange: (direction: SortDirection) => void;
+  onFilterChange: (value: string, type: "contains" | "equals") => void;
+  onFilterRemove: () => void;
+  isEnum?: boolean;
+}
+
+// Update the HeaderMenu component with proper event handling
+function HeaderMenu({
+  column,
+  label,
+  sortCriterion,
+  filterCriterion,
+  sortConfig,
+  onSortChange,
+  onFilterChange,
+  onFilterRemove,
+  isEnum,
+}: HeaderMenuProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [filterValue, setFilterValue] = useState(filterCriterion?.value || "");
+
+  useEffect(() => {
+    setFilterValue(filterCriterion?.value || "");
+  }, [filterCriterion]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (filterValue !== filterCriterion?.value) {
+        if (filterValue) {
+          onFilterChange(filterValue, "contains");
+        } else {
+          onFilterRemove();
+        }
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [filterValue, filterCriterion?.value, onFilterChange, onFilterRemove]);
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <div className="flex items-center gap-1 px-2 py-1 rounded hover:bg-accent">
+          <div className="flex items-center">
+            {sortCriterion ? (
+              <div className="flex items-center -space-x-1">
+                {sortCriterion.direction === "asc" ? (
+                  <ArrowUp className="h-4 w-4" />
+                ) : (
+                  <ArrowDown className="h-4 w-4" />
+                )}
+                {Array.isArray(sortConfig) && sortConfig.length > 1 && (
+                  <span className="text-xs font-mono translate-y-[1px] ml-1">
+                    {sortConfig.findIndex((c) => c.column === column) + 1}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <ArrowUpDown className="h-4 w-4" />
+            )}
+          </div>
+          <span>{label}</span>
+          {filterCriterion && (
+            <Badge variant="secondary" className="ml-1">
+              Filtered
+            </Badge>
+          )}
+        </div>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-64 space-y-4"
+        onInteractOutside={(e) => {
+          if (
+            (e.target as HTMLElement).closest("input") ||
+            window.getSelection()?.toString()
+          ) {
+            e.preventDefault();
+          }
+        }}
+      >
+        <div className="space-y-2">
+          <Label>Sort</Label>
+          <RadioGroup
+            value={sortCriterion?.direction || "none"}
+            onValueChange={(value: SortDirection) => {
+              onSortChange(value);
+            }}
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="none" id={`${column}-none`} />
+              <Label htmlFor={`${column}-none`}>None</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="asc" id={`${column}-asc`} />
+              <Label htmlFor={`${column}-asc`}>Ascending</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="desc" id={`${column}-desc`} />
+              <Label htmlFor={`${column}-desc`}>Descending</Label>
+            </div>
+          </RadioGroup>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Filter</Label>
+          {isEnum ? (
+            <Select
+              value={filterValue}
+              onValueChange={(value) => {
+                setFilterValue(value);
+                if (value === "__clear__") {
+                  onFilterRemove();
+                } else {
+                  onFilterChange(value, "equals");
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select status..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__clear__">Clear filter</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="scheduled">Scheduled</SelectItem>
+                <SelectItem value="no_answer">No Answer</SelectItem>
+                <SelectItem value="not_interested">Not Interested</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="space-y-2">
+              <Input
+                placeholder="Filter value..."
+                value={filterValue}
+                onChange={(e) => {
+                  setFilterValue(e.target.value);
+                }}
+              />
+              {filterCriterion && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFilterValue("");
+                    onFilterRemove();
+                  }}
+                  className="w-full"
+                >
+                  Clear Filter
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export function LeadTable() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
@@ -142,6 +318,7 @@ export function LeadTable() {
   const [csvPreviewData, setCSVPreviewData] = useState<CSVPreviewData[]>([]);
   const [showCSVPreview, setShowCSVPreview] = useState(false);
   const [sortConfig, setSortConfig] = useState<SortConfig>([]);
+  const [filterConfig, setFilterConfig] = useState<FilterCriterion[]>([]);
 
   useEffect(() => {
     const stored = localStorage.getItem("leadsTableSort");
@@ -160,8 +337,16 @@ export function LeadTable() {
   }, [editingCell]);
 
   useEffect(() => {
-    fetchLeads();
-  }, []);
+    const loadAndProcessLeads = async () => {
+      const originalLeads = await fetchLeads();
+      if (originalLeads) {
+        const processedLeads = getFilteredAndSortedLeads(originalLeads);
+        setLeads(processedLeads);
+      }
+    };
+
+    loadAndProcessLeads();
+  }, [sortConfig, filterConfig]);
 
   const fetchLeads = async () => {
     const { data, error } = await supabase
@@ -175,10 +360,10 @@ export function LeadTable() {
         description: error.message,
         variant: "destructive",
       });
-      return;
+      return null;
     }
 
-    setLeads(data);
+    return data;
   };
 
   const toggleAll = () => {
@@ -454,31 +639,6 @@ export function LeadTable() {
     });
   };
 
-  const handleSort = (column: keyof Lead) => {
-    const currentConfig = Array.isArray(sortConfig) ? sortConfig : [];
-    const existingCriterionIndex = currentConfig.findIndex(
-      (c) => c.column === column
-    );
-    const newSortConfig = [...currentConfig];
-
-    if (existingCriterionIndex !== -1) {
-      // Update existing criterion
-      const currentDirection = currentConfig[existingCriterionIndex].direction;
-      if (currentDirection === "asc") {
-        newSortConfig[existingCriterionIndex].direction = "desc";
-      } else if (currentDirection === "desc") {
-        // Remove this criterion
-        newSortConfig.splice(existingCriterionIndex, 1);
-      }
-    } else {
-      // Add new criterion
-      newSortConfig.push({ column, direction: "asc" });
-    }
-
-    setSortConfig(newSortConfig);
-    localStorage.setItem("leadsTableSort", JSON.stringify(newSortConfig));
-  };
-
   const getSortedLeads = (leadsToSort: Lead[]): Lead[] => {
     if (!Array.isArray(sortConfig) || sortConfig.length === 0) {
       return leadsToSort;
@@ -525,9 +685,32 @@ export function LeadTable() {
     });
   };
 
-  useEffect(() => {
-    setLeads((prevLeads) => getSortedLeads([...prevLeads]));
-  }, [sortConfig]);
+  const getFilteredAndSortedLeads = (leadsToProcess: Lead[]): Lead[] => {
+    // Create a copy of the original leads
+    let processedLeads = [...leadsToProcess];
+
+    // Apply filters if there are any
+    if (filterConfig.length > 0) {
+      processedLeads = processedLeads.filter((lead) => {
+        return filterConfig.every((filter) => {
+          const value = lead[filter.column as keyof Lead];
+          if (value === null) return false;
+
+          const stringValue = String(value).toLowerCase();
+          const filterValue = filter.value.toLowerCase();
+
+          if (filter.type === "contains") {
+            return stringValue.includes(filterValue);
+          } else {
+            return stringValue === filterValue;
+          }
+        });
+      });
+    }
+
+    // Then apply sorting
+    return getSortedLeads(processedLeads);
+  };
 
   const renderCell = (lead: Lead, field: keyof Lead) => {
     const isEditing =
@@ -592,7 +775,7 @@ export function LeadTable() {
         {Object.entries(FIELD_MAPPINGS).map(([key]) => {
           const currentConfig = Array.isArray(sortConfig) ? sortConfig : [];
           const sortCriterion = currentConfig.find((c) => c.column === key);
-          const sortIndex = currentConfig.findIndex((c) => c.column === key);
+          const filterCriterion = filterConfig.find((c) => c.column === key);
 
           return (
             <TableHead
@@ -600,31 +783,47 @@ export function LeadTable() {
               className={`${
                 key === "call_attempts" ? "text-center" : ""
               } cursor-pointer select-none text-muted-foreground`}
-              onClick={() => handleSort(key as keyof Lead)}
             >
-              <div className="flex items-center gap-1">
-                <div className="flex items-center">
-                  {sortCriterion ? (
-                    <div className="flex items-center -space-x-1">
-                      {sortCriterion.direction === "asc" ? (
-                        <ArrowUp className="h-4 w-4" />
-                      ) : (
-                        <ArrowDown className="h-4 w-4" />
-                      )}
-                      {currentConfig.length > 1 && (
-                        <span className="text-xs font-mono translate-y-[1px]">
-                          {sortIndex + 1}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <ArrowUpDown className="h-4 w-4" />
-                  )}
-                </div>
-                <span>
-                  {FIELD_MAPPINGS[key as keyof typeof FIELD_MAPPINGS]}
-                </span>
-              </div>
+              <HeaderMenu
+                column={key}
+                label={FIELD_MAPPINGS[key as keyof typeof FIELD_MAPPINGS]}
+                sortCriterion={sortCriterion}
+                filterCriterion={filterCriterion}
+                sortConfig={sortConfig}
+                onSortChange={(direction) => {
+                  const newConfig = [...sortConfig];
+                  if (direction === "none") {
+                    setSortConfig(newConfig.filter((c) => c.column !== key));
+                    localStorage.setItem(
+                      "leadsTableSort",
+                      JSON.stringify(newConfig.filter((c) => c.column !== key))
+                    );
+                  } else {
+                    const filteredConfig = newConfig.filter(
+                      (c) => c.column !== key
+                    );
+                    filteredConfig.push({ column: key, direction });
+                    setSortConfig(filteredConfig);
+                    localStorage.setItem(
+                      "leadsTableSort",
+                      JSON.stringify(filteredConfig)
+                    );
+                  }
+                }}
+                onFilterChange={(value, type) => {
+                  const newConfig = filterConfig.filter(
+                    (c) => c.column !== key
+                  );
+                  if (value) {
+                    newConfig.push({ column: key, value, type });
+                  }
+                  setFilterConfig(newConfig);
+                }}
+                onFilterRemove={() => {
+                  setFilterConfig(filterConfig.filter((c) => c.column !== key));
+                }}
+                isEnum={key === "status"}
+              />
             </TableHead>
           );
         })}
