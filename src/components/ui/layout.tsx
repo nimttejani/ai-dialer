@@ -1,15 +1,16 @@
-"use client"
+"use client";
 
-import { cn } from "@/lib/utils"
-import { MenuIcon } from "lucide-react"
-import { useState } from "react"
+import { cn } from "@/lib/utils";
+import { MenuIcon } from "lucide-react";
+import { useState } from "react";
+import Link from "next/link";
 
 interface LayoutProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 export function Layout({ children }: LayoutProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
     <div className="min-h-screen">
@@ -20,7 +21,7 @@ export function Layout({ children }: LayoutProps) {
         )}
       >
         <div className="p-6">
-          <h1 className="text-xl font-semibold">HVAC Sales Automation</h1>
+          <h1 className="text-xl font-semibold">HVAC Dialler</h1>
         </div>
         <nav className="px-4 py-2">
           <button
@@ -31,20 +32,20 @@ export function Layout({ children }: LayoutProps) {
           </button>
           <ul className="space-y-2">
             <li>
-              <a
+              <Link
                 href="/"
                 className="flex items-center px-4 py-2 text-sm font-medium rounded-md bg-accent"
               >
                 Dashboard
-              </a>
+              </Link>
             </li>
             <li>
-              <a
+              <Link
                 href="/settings"
                 className="flex items-center px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-accent"
               >
                 Settings
-              </a>
+              </Link>
             </li>
           </ul>
         </nav>
@@ -56,16 +57,12 @@ export function Layout({ children }: LayoutProps) {
         )}
       >
         <div className="sticky top-0 z-10 bg-background border-b lg:hidden">
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="p-4"
-          >
+          <button onClick={() => setIsSidebarOpen(true)} className="p-4">
             <MenuIcon className="h-6 w-6" />
           </button>
         </div>
         <main className="p-8">{children}</main>
       </div>
     </div>
-  )
+  );
 }
-

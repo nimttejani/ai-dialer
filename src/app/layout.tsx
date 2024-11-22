@@ -1,22 +1,28 @@
-"use client"
+"use client";
 
-import "./globals.css"
-import { Inter } from "next/font/google"
-import { cn } from "@/lib/utils"
-import { MenuIcon, LayoutDashboard, Settings, ChevronLeft, ChevronRight } from 'lucide-react'
-import { useState } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import "./globals.css";
+import { Inter } from "next/font/google";
+import { cn } from "@/lib/utils";
+import {
+  MenuIcon,
+  LayoutDashboard,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
-  const pathname = usePathname()
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const pathname = usePathname();
 
   return (
     <html lang="en">
@@ -29,12 +35,18 @@ export default function RootLayout({
             )}
           >
             <div className="p-4 flex items-center justify-between">
-              {isSidebarOpen && <h1 className="text-xl font-semibold">HVAC Sales</h1>}
+              {isSidebarOpen && (
+                <h1 className="text-xl font-semibold">HVAC Dialler</h1>
+              )}
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                 className="p-2 hover:bg-accent rounded-md"
               >
-                {isSidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                {isSidebarOpen ? (
+                  <ChevronLeft className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
               </button>
             </div>
             <nav className="flex-1 px-2 py-4">
@@ -77,6 +89,5 @@ export default function RootLayout({
         </div>
       </body>
     </html>
-  )
+  );
 }
-
