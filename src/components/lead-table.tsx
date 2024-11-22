@@ -54,6 +54,68 @@ const FIELD_MAPPINGS = {
   last_called_at: "Last Called At",
 } as const;
 
+// Add these new interfaces and type
+interface CSVPreviewData {
+  company_name: string;
+  phone: string;
+  email: string;
+}
+
+interface CSVDialogProps {
+  previewData: CSVPreviewData[];
+  onConfirm: (data: CSVPreviewData[]) => void;
+  onCancel: () => void;
+  open: boolean;
+}
+
+// Add this new component for the CSV preview dialog
+function CSVPreviewDialog({
+  previewData,
+  onConfirm,
+  onCancel,
+  open,
+}: CSVDialogProps) {
+  return (
+    <AlertDialog open={open} onOpenChange={(open) => !open && onCancel()}>
+      <AlertDialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirm CSV Import</AlertDialogTitle>
+          <AlertDialogDescription>
+            Please review the data before importing. The following{" "}
+            {previewData.length} leads will be added:
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="my-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Company Name</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Email</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {previewData.map((row, index) => (
+                <TableRow key={index}>
+                  <TableCell>{row.company_name}</TableCell>
+                  <TableCell>{row.phone}</TableCell>
+                  <TableCell>{row.email}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={() => onConfirm(previewData)}>
+            Import
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 export function LeadTable() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
@@ -67,6 +129,8 @@ export function LeadTable() {
   const { toast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [csvPreviewData, setCSVPreviewData] = useState<CSVPreviewData[]>([]);
+  const [showCSVPreview, setShowCSVPreview] = useState(false);
 
   useEffect(() => {
     if (editingCell && inputRef.current) {
@@ -254,32 +318,123 @@ export function LeadTable() {
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const content = e.target?.result as string;
-        const rows = content.split("\n");
-        const headers = rows[0].split(",");
-        const newLeads: Lead[] = rows.slice(1).map((row, index) => {
-          const values = row.split(",");
-          return {
-            id: leads.length + index + 1,
-            companyName: values[headers.indexOf("companyName")] || "",
-            phone: values[headers.indexOf("phone")] || "",
-            email: values[headers.indexOf("email")] || "",
-            status:
-              (values[headers.indexOf("status")] as Lead["status"]) ||
-              "pending",
-            callAttempts:
-              parseInt(values[headers.indexOf("callAttempts")]) || 0,
-            lastCalledAt: values[headers.indexOf("lastCalledAt")] || null,
-          };
-        });
-        setLeads([...leads, ...newLeads]);
-        toast({
-          title: "CSV imported",
-          description: `${newLeads.length} lead(s) have been imported.`,
-        });
+        try {
+          const content = e.target?.result as string;
+          const rows = content
+            .split(/\r?\n/)
+            .filter((row) => row.trim().length > 0);
+
+          if (rows.length < 2) {
+            throw new Error(
+              "CSV file must contain at least a header row and one data row"
+            );
+          }
+
+          // Parse headers and find relevant columns
+          const headers = rows[0].split(",").map(
+            (h) =>
+              h
+                .trim()
+                .toLowerCase()
+                .replace(/['"]/g, "") // Remove quotes
+                .replace(/\s+/g, "_") // Replace spaces with underscore
+          );
+
+          // Find the indices of required columns
+          const companyNameIndex = headers.findIndex(
+            (h) =>
+              h.includes("company") ||
+              h.includes("name") ||
+              h.includes("business")
+          );
+          const phoneIndex = headers.findIndex(
+            (h) =>
+              h.includes("phone") || h.includes("tel") || h.includes("contact")
+          );
+          const emailIndex = headers.findIndex(
+            (h) =>
+              h.includes("email") || h.includes("mail") || h.includes("e-mail")
+          );
+
+          if (
+            companyNameIndex === -1 ||
+            phoneIndex === -1 ||
+            emailIndex === -1
+          ) {
+            throw new Error(
+              "Could not find required columns (company name, phone, email)"
+            );
+          }
+
+          // Parse data rows
+          const parsedData: CSVPreviewData[] = rows
+            .slice(1)
+            .map((row) => {
+              // Handle both quoted and unquoted values
+              const values = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
+              const cleanValues = values.map((val) =>
+                val.replace(/^"|"$/g, "").trim()
+              );
+
+              return {
+                company_name: cleanValues[companyNameIndex] || "",
+                phone: cleanValues[phoneIndex] || "",
+                email: cleanValues[emailIndex] || "",
+              };
+            })
+            .filter((row) => row.company_name && row.phone && row.email);
+
+          if (parsedData.length === 0) {
+            throw new Error("No valid data rows found in CSV");
+          }
+
+          setCSVPreviewData(parsedData);
+          setShowCSVPreview(true);
+        } catch (error) {
+          toast({
+            title: "Error parsing CSV",
+            description:
+              error instanceof Error ? error.message : "Invalid CSV format",
+            variant: "destructive",
+          });
+        }
       };
       reader.readAsText(file);
     }
+    // Reset the file input
+    if (event.target) {
+      event.target.value = "";
+    }
+  };
+
+  const handleCSVImport = async (data: CSVPreviewData[]) => {
+    const newLeads = data.map((row) => ({
+      ...row,
+      status: "pending" as const,
+      call_attempts: 0,
+      last_called_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }));
+
+    const { error } = await supabase.from("leads").insert(newLeads);
+
+    if (error) {
+      toast({
+        title: "Error importing leads",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await fetchLeads();
+    setShowCSVPreview(false);
+    setCSVPreviewData([]);
+    toast({
+      title: "CSV imported",
+      description: `${data.length} lead(s) have been imported successfully.`,
+    });
   };
 
   const renderCell = (lead: Lead, field: keyof Lead) => {
@@ -481,6 +636,17 @@ export function LeadTable() {
           {renderTableBody()}
         </Table>
       </div>
+      {showCSVPreview && (
+        <CSVPreviewDialog
+          previewData={csvPreviewData}
+          onConfirm={handleCSVImport}
+          onCancel={() => {
+            setShowCSVPreview(false);
+            setCSVPreviewData([]);
+          }}
+          open={showCSVPreview}
+        />
+      )}
     </div>
   );
 }
