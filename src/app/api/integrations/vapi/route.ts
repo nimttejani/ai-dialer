@@ -74,8 +74,7 @@ export async function POST(request: Request) {
             hour: 'numeric',
             minute: '2-digit',
             timeZoneName: 'short'
-          })}. You'll receive a confirmation email shortly with all the details.`,
-          booking: result.booking
+          })}`,
         });
       }
 
@@ -83,18 +82,6 @@ export async function POST(request: Request) {
         throw new Error('Invalid action');
     }
   } catch (error) {
-    console.error('Error in Cal.com API route:', error);
-    
-    // Format error message for VAPI
-    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-    
-    return NextResponse.json({
-      success: false,
-      message: error instanceof z.ZodError ?
-        "I couldn't process that request. Please make sure all required information is provided." :
-        `I apologize, but I encountered an error: ${errorMessage}. Would you like to try again?`
-    }, {
-      status: error instanceof Error && error.message === 'Unauthorized' ? 401 : 500
-    });
+    throw error;
   }
 }
