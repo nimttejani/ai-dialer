@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, Request } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) throw new Error('NEXT_PUBLIC_SUPABASE_URL is required')
@@ -6,6 +6,7 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) throw new Error('NEXT_PUBLIC_SUP
 if (!process.env.VAPI_API_KEY) throw new Error('VAPI_API_KEY is required')
 if (!process.env.VAPI_ASSISTANT_ID) throw new Error('VAPI_ASSISTANT_ID is required')
 if (!process.env.VAPI_PHONE_NUMBER_ID) throw new Error('VAPI_PHONE_NUMBER_ID is required')
+if (!process.env.CRON_SECRET) throw new Error('CRON_SECRET is required')
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -61,8 +62,13 @@ async function initiateVapiCall(lead: any) {
   return response.json()
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // Verify cron authentication
+    if (request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
     // Get automation settings
     const settings = await getAutomationSettings()
 
@@ -138,8 +144,4 @@ export async function GET() {
       { status: 500 }
     )
   }
-}
-
-export const config = {
-  runtime: 'edge'
 }
