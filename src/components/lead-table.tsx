@@ -49,8 +49,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
-import { Lead } from "@/lib/supabase";
-import { supabase } from "@/lib/supabase";
+import { Lead } from "@/types/leads";
 import {
   type SortDirection,
   type SortCriterion,
@@ -361,24 +360,21 @@ export function LeadTable() {
   }, []);
 
   const fetchLeads = async () => {
-    const { data, error } = await supabase
-      .from("leads")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      toast({
-        title: "Error fetching leads",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (data) {
+    try {
+      const response = await fetch('/api/leads');
+      if (!response.ok) {
+        throw new Error('Failed to fetch leads');
+      }
+      const data = await response.json();
       setRawLeads(data);
       const processedLeads = getFilteredAndSortedLeads(data);
       setLeads(processedLeads);
+    } catch (error) {
+      toast({
+        title: "Error fetching leads",
+        description: error instanceof Error ? error.message : 'An error occurred',
+        variant: "destructive",
+      });
     }
   };
 
@@ -403,28 +399,34 @@ export function LeadTable() {
     return formatDateTime(date);
   };
 
-  const handleDelete = async () => {
-    const { error } = await supabase
-      .from("leads")
-      .delete()
-      .in("id", selectedLeads);
+  const handleDeleteLeads = async () => {
+    try {
+      const response = await fetch('/api/leads', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ids: selectedLeads }),
+      });
 
-    if (error) {
+      if (!response.ok) {
+        throw new Error('Failed to delete leads');
+      }
+
+      setSelectedLeads([]);
+      setIsDeleteDialogOpen(false);
+      await fetchLeads();
+      toast({
+        title: "Leads deleted",
+        description: "Selected leads have been deleted successfully.",
+      });
+    } catch (error) {
       toast({
         title: "Error deleting leads",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An error occurred',
         variant: "destructive",
       });
-      return;
     }
-
-    await fetchLeads();
-    setSelectedLeads([]);
-    setIsDeleteDialogOpen(false);
-    toast({
-      title: "Leads deleted",
-      description: `${selectedLeads.length} lead(s) have been deleted.`,
-    });
   };
 
   const handleCellClick = (id: string, field: keyof Lead) => {
@@ -454,47 +456,56 @@ export function LeadTable() {
     field: keyof Lead,
     value: string
   ) => {
-    const { error } = await supabase
-      .from("leads")
-      .update({ [field]: value, updated_at: new Date().toISOString() })
-      .eq("id", id);
+    try {
+      const response = await fetch(`/api/leads/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ [field]: value }),
+      });
 
-    if (error) {
+      if (!response.ok) {
+        throw new Error('Failed to update lead');
+      }
+
+      setEditingCell(null);
+      await fetchLeads();
+    } catch (error) {
       toast({
         title: "Error updating lead",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An error occurred',
         variant: "destructive",
       });
-      await fetchLeads();
-      return;
     }
-
-    setEditingCell(null);
   };
 
   const handleStatusChange = async (value: Lead["status"], id: string) => {
-    const { error } = await supabase
-      .from("leads")
-      .update({
-        status: value,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id);
+    try {
+      const response = await fetch(`/api/leads/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: value }),
+      });
 
-    if (error) {
+      if (!response.ok) {
+        throw new Error('Failed to update status');
+      }
+
+      const updatedLeads = leads.map((lead) =>
+        lead.id === id ? { ...lead, status: value } : lead
+      );
+      setLeads(updatedLeads);
+      setEditingCell(null);
+    } catch (error) {
       toast({
         title: "Error updating status",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An error occurred',
         variant: "destructive",
       });
-      return;
     }
-
-    const updatedLeads = leads.map((lead) =>
-      lead.id === id ? { ...lead, status: value } : lead
-    );
-    setLeads(updatedLeads);
-    setEditingCell(null);
   };
 
   const handleAddLead = async () => {
@@ -518,24 +529,33 @@ export function LeadTable() {
       updated_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase.from("leads").insert([newLeadData]);
+    try {
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newLeadData),
+      });
 
-    if (error) {
+      if (!response.ok) {
+        throw new Error('Failed to add lead');
+      }
+
+      setNewLead({});
+      setIsAddingLead(false);
+      await fetchLeads();
+      toast({
+        title: "Lead added",
+        description: "New lead has been added successfully.",
+      });
+    } catch (error) {
       toast({
         title: "Error adding lead",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An error occurred',
         variant: "destructive",
       });
-      return;
     }
-
-    setNewLead({});
-    setIsAddingLead(false);
-    await fetchLeads();
-    toast({
-      title: "Lead added",
-      description: "New lead has been added successfully.",
-    });
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -642,24 +662,33 @@ export function LeadTable() {
       updated_at: new Date().toISOString(),
     }));
 
-    const { error } = await supabase.from("leads").insert(newLeads);
+    try {
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newLeads),
+      });
 
-    if (error) {
+      if (!response.ok) {
+        throw new Error('Failed to import leads');
+      }
+
+      await fetchLeads();
+      setShowCSVPreview(false);
+      setCSVPreviewData([]);
+      toast({
+        title: "CSV imported",
+        description: `${data.length} lead(s) have been imported successfully.`,
+      });
+    } catch (error) {
       toast({
         title: "Error importing leads",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An error occurred',
         variant: "destructive",
       });
-      return;
     }
-
-    await fetchLeads();
-    setShowCSVPreview(false);
-    setCSVPreviewData([]);
-    toast({
-      title: "CSV imported",
-      description: `${data.length} lead(s) have been imported successfully.`,
-    });
   };
 
   const getSortedLeads = (leadsToSort: Lead[]): Lead[] => {
@@ -947,7 +976,7 @@ export function LeadTable() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete}>
+                <AlertDialogAction onClick={handleDeleteLeads}>
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>

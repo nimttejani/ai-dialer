@@ -48,7 +48,6 @@ cp .env.example .env.local
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 VAPI_API_KEY=your_vapi_key
 VAPI_ASSISTANT_ID=your_assistant_id
 VAPI_PHONE_NUMBER_ID=your_phone_number_id
