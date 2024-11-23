@@ -24,6 +24,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -482,37 +490,44 @@ export function LeadTable() {
   };
 
   const handleAddLead = async () => {
-    if (newLead.company_name && newLead.phone && newLead.email) {
-      const newLeadData = {
-        company_name: newLead.company_name,
-        phone: newLead.phone,
-        email: newLead.email,
-        status: "pending" as const,
-        call_attempts: 0,
-        last_called_at: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error } = await supabase.from("leads").insert([newLeadData]);
-
-      if (error) {
-        toast({
-          title: "Error adding lead",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      await fetchLeads();
-      setNewLead({});
-      setIsAddingLead(false);
+    if (!newLead.company_name || !newLead.phone || !newLead.email) {
       toast({
-        title: "Lead added",
-        description: "New lead has been added successfully.",
+        title: "Missing information",
+        description: "Please fill in all fields",
+        variant: "destructive",
       });
+      return;
     }
+
+    const newLeadData = {
+      company_name: newLead.company_name,
+      phone: newLead.phone,
+      email: newLead.email,
+      status: "pending" as const,
+      call_attempts: 0,
+      last_called_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase.from("leads").insert([newLeadData]);
+
+    if (error) {
+      toast({
+        title: "Error adding lead",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setNewLead({});
+    setIsAddingLead(false);
+    await fetchLeads();
+    toast({
+      title: "Lead added",
+      description: "New lead has been added successfully.",
+    });
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -843,69 +858,31 @@ export function LeadTable() {
           </TableCell>
         </TableRow>
       ) : (
-        <>
-          {isAddingLead && (
-            <TableRow>
-              <TableCell colSpan={7}>
-                <div className="flex items-center space-x-2">
-                  <Input
-                    placeholder="Company Name"
-                    value={newLead.company_name || ""}
-                    onChange={(e) =>
-                      setNewLead({ ...newLead, company_name: e.target.value })
-                    }
-                  />
-                  <Input
-                    placeholder="Phone"
-                    value={newLead.phone || ""}
-                    onChange={(e) =>
-                      setNewLead({ ...newLead, phone: e.target.value })
-                    }
-                  />
-                  <Input
-                    placeholder="Email"
-                    value={newLead.email || ""}
-                    onChange={(e) =>
-                      setNewLead({ ...newLead, email: e.target.value })
-                    }
-                  />
-                  <Button onClick={handleAddLead}>Add</Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsAddingLead(false)}
-                  >
-                    Cancel
-                  </Button>
+        leads.map((lead) => (
+          <TableRow key={lead.id}>
+            <TableCell>
+              <Checkbox
+                checked={selectedLeads.includes(lead.id)}
+                onCheckedChange={() => toggleLead(lead.id)}
+              />
+            </TableCell>
+            {Object.keys(FIELD_MAPPINGS).map((field) => (
+              <TableCell
+                key={field}
+                onClick={() => handleCellClick(lead.id, field as keyof Lead)}
+                className={`${
+                  !["call_attempts", "last_called_at"].includes(field)
+                    ? "cursor-text"
+                    : "cursor-not-allowed"
+                } p-0`}
+              >
+                <div className="px-4 py-2 min-h-[2.5rem] flex items-center">
+                  {renderCell(lead, field as keyof Lead)}
                 </div>
               </TableCell>
-            </TableRow>
-          )}
-          {leads.map((lead) => (
-            <TableRow key={lead.id}>
-              <TableCell>
-                <Checkbox
-                  checked={selectedLeads.includes(lead.id)}
-                  onCheckedChange={() => toggleLead(lead.id)}
-                />
-              </TableCell>
-              {Object.keys(FIELD_MAPPINGS).map((field) => (
-                <TableCell
-                  key={field}
-                  onClick={() => handleCellClick(lead.id, field as keyof Lead)}
-                  className={`${
-                    !["call_attempts", "last_called_at"].includes(field)
-                      ? "cursor-text"
-                      : "cursor-not-allowed"
-                  } p-0`}
-                >
-                  <div className="px-4 py-2 min-h-[2.5rem] flex items-center">
-                    {renderCell(lead, field as keyof Lead)}
-                  </div>
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </>
+            ))}
+          </TableRow>
+        ))
       )}
     </TableBody>
   );
@@ -970,12 +947,60 @@ export function LeadTable() {
           </AlertDialog>
         )}
       </div>
+
       <div className="border rounded-md">
         <Table>
           {renderTableHeader()}
           {renderTableBody()}
         </Table>
       </div>
+
+      <Dialog open={isAddingLead} onOpenChange={setIsAddingLead}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Lead</DialogTitle>
+            <DialogDescription>
+              Enter the lead's information below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Input
+                placeholder="Company Name"
+                value={newLead.company_name || ""}
+                onChange={(e) =>
+                  setNewLead({ ...newLead, company_name: e.target.value })
+                }
+              />
+            </div>
+            <div className="grid gap-2">
+              <Input
+                placeholder="Phone"
+                value={newLead.phone || ""}
+                onChange={(e) =>
+                  setNewLead({ ...newLead, phone: e.target.value })
+                }
+              />
+            </div>
+            <div className="grid gap-2">
+              <Input
+                placeholder="Email"
+                value={newLead.email || ""}
+                onChange={(e) =>
+                  setNewLead({ ...newLead, email: e.target.value })
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddingLead(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddLead}>Add Lead</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {showCSVPreview && (
         <CSVPreviewDialog
           previewData={csvPreviewData}
