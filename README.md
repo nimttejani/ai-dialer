@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HVAC Sales Automation
+
+An automated outbound calling system for HVAC companies using AI-powered voice technology.
+
+## Project Overview
+
+This system automates the process of calling HVAC companies to book product demos. It leverages VAPI.ai for voice calls, Cal.com for appointment scheduling, and Resend for email communications.
+
+### Key Features
+
+- 🤖 Automated outbound calling with AI voice technology
+- 📊 Lead management dashboard
+- 📅 Automated appointment scheduling
+- 📧 Automated email follow-ups
+- 📈 Real-time status tracking
+- 📁 Bulk lead import via CSV
+
+## Tech Stack
+
+- **Frontend**: Next.js 15 with App Router
+- **Database**: Supabase Postgres
+- **Automation**: Vercel Cron
+- **External Services**:
+  - VAPI.ai - Voice calls
+  - Cal.com - Appointment scheduling
+  - Resend - Email communications
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+
+- Supabase account
+- VAPI.ai account
+- Cal.com account
+- Resend account
+
+### Environment Setup
+
+1. Copy the example environment file:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Fill in your environment variables:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
+VAPI_API_KEY=your_vapi_key
+CALCOM_API_KEY=your_calcom_key
+RESEND_API_KEY=your_resend_key
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Installation
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Install dependencies
+npm install
 
-## Learn More
+# Run development server
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Documentation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- [Architecture Overview](/docs/architecture.md)
+- [API Documentation](/docs/api.md)
 
-## Deploy on Vercel
+## Development Workflow
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Create feature branch from `main`
+2. Make changes and test locally
+3. Submit PR for review
+4. Merge to `main` after approval
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deployment
+
+The application is automatically deployed to Vercel on merges to `main`.
+
+## Success Metrics
+
+1. Successful automated calls through VAPI
+2. Accurate lead lifecycle tracking
+3. Successful appointment scheduling
+4. Timely follow-up emails
+5. System reliability and uptime
+
+## License
+
+MIT
