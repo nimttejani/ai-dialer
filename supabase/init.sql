@@ -91,21 +91,58 @@ alter table leads enable row level security;
 alter table settings enable row level security;
 alter table appointments enable row level security;
 
--- RLS Policies
-create policy "Allow all operations for authenticated users" on leads
-  for all
+-- Drop existing policies if they exist
+drop policy if exists "Allow all operations for authenticated users" on leads;
+drop policy if exists "Allow all operations for authenticated users" on settings;
+drop policy if exists "Allow all operations for authenticated users" on appointments;
+
+-- RLS Policies for leads
+create policy "Enable read access for authenticated users" on leads
+  for select
+  to authenticated
+  using (true);
+
+create policy "Enable insert access for authenticated users" on leads
+  for insert
+  to authenticated
+  with check (true);
+
+create policy "Enable update access for authenticated users" on leads
+  for update
   to authenticated
   using (true)
   with check (true);
 
-create policy "Allow all operations for authenticated users" on settings
-  for all
+create policy "Enable delete access for authenticated users" on leads
+  for delete
+  to authenticated
+  using (true);
+
+-- RLS Policies for settings
+create policy "Enable read access for authenticated users" on settings
+  for select
+  to authenticated
+  using (true);
+
+create policy "Enable update access for authenticated users" on settings
+  for update
   to authenticated
   using (true)
   with check (true);
 
-create policy "Allow all operations for authenticated users" on appointments
-  for all
+-- RLS Policies for appointments
+create policy "Enable read access for authenticated users" on appointments
+  for select
+  to authenticated
+  using (true);
+
+create policy "Enable insert access for authenticated users" on appointments
+  for insert
+  to authenticated
+  with check (true);
+
+create policy "Enable update access for authenticated users" on appointments
+  for update
   to authenticated
   using (true)
   with check (true);
