@@ -1,24 +1,51 @@
 {
   "name": "cal",
-  "description": "Check availability and book appointments in Cal.com",
+  "description": "Check availability and book appointments through Cal.com",
+  "api": {
+    "url": "${HVAC_DIALLER_URL}/api/cal",
+    "headers": {
+      "Content-Type": "application/json",
+      "x-vapi-secret": "${VAPI_SECRET_KEY}"
+    }
+  },
   "parameters": {
     "type": "object",
     "properties": {
       "action": {
         "type": "string",
-        "enum": ["check_availability", "book_appointment"]
+        "enum": ["check_availability", "book_appointment"],
+        "description": "The action to perform - either check available slots or book an appointment"
       },
       "bookingDetails": {
         "type": "object",
         "properties": {
-          "name": { "type": "string" },
-          "email": { "type": "string" },
-          "company": { "type": "string" },
-          "phone": { "type": "string" },
-          "notes": { "type": "string" },
-          "startTime": { "type": "string" }
+          "name": { 
+            "type": "string",
+            "description": "Full name of the person booking the demo"
+          },
+          "email": { 
+            "type": "string",
+            "description": "Email address for sending confirmation"
+          },
+          "company": { 
+            "type": "string",
+            "description": "Company name"
+          },
+          "phone": { 
+            "type": "string",
+            "description": "Contact phone number"
+          },
+          "notes": { 
+            "type": "string",
+            "description": "Any additional notes about the booking"
+          },
+          "startTime": { 
+            "type": "string",
+            "description": "ISO string of the selected appointment time"
+          }
         },
-        "required": ["name", "email", "company", "phone", "startTime"]
+        "required": ["name", "email", "company", "phone", "startTime"],
+        "description": "Details required for booking an appointment"
       }
     },
     "required": ["action"]

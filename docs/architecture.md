@@ -34,8 +34,24 @@ The HVAC Sales Automation system is designed to automate outbound sales calls to
   - Reports call outcomes
   
 - **Cal.com Integration**
-  - Manages appointment scheduling
-  - Syncs calendar availability
+  - Structure:
+    ```
+    /src/lib/cal.ts        # Low-level Cal.com API client
+    /src/services/cal.ts   # Business logic and error handling
+    /api/cal/route.ts      # VAPI-authenticated endpoint
+    ```
+  - Flow:
+    1. VAPI agent discusses scheduling with caller
+    2. Agent calls `/api/cal` endpoint to:
+       - Check available time slots
+       - Book appointments when caller confirms
+    3. Endpoint authenticates VAPI request
+    4. Service layer handles Cal.com API interaction
+    5. Response formatted for VAPI to relay to caller
+  - Security:
+    - Endpoint protected by our generated API key (x-vapi-secret header)
+    - Cal.com credentials stored in environment variables
+    - VAPI configured to include our API key in tool requests
   
 - **Resend Integration**
   - Handles email communications
