@@ -1,0 +1,26 @@
+{
+  "name": "cal",
+  "description": "Check availability and book appointments in Cal.com",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": ["check_availability", "book_appointment"]
+      },
+      "bookingDetails": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "company": { "type": "string" },
+          "phone": { "type": "string" },
+          "notes": { "type": "string" },
+          "startTime": { "type": "string" }
+        },
+        "required": ["name", "email", "company", "phone", "startTime"]
+      }
+    },
+    "required": ["action"]
+  }
+}
