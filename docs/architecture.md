@@ -36,23 +36,32 @@ The HVAC Sales Automation system is designed to automate outbound sales calls to
 - **Cal.com Integration**
   - Structure:
     ```
-    /src/lib/cal.ts        # Low-level Cal.com API client
-    /src/services/cal.ts   # Business logic and error handling
-    /api/cal/route.ts      # VAPI-authenticated endpoint
+    /src/lib/cal.ts              # Low-level Cal.com API client
+    /src/services/cal.ts         # Business logic and error handling
+    /api/webhook/vapi/route.ts   # Endpoint for VAPI to call
+    /api/webhook/cal/route.ts    # Endpoint for Cal.com webhooks
     ```
-  - Flow:
-    1. VAPI agent discusses scheduling with caller
-    2. Agent calls `/api/cal` endpoint to:
-       - Check available time slots
-       - Book appointments when caller confirms
-    3. Endpoint authenticates VAPI request
-    4. Service layer handles Cal.com API interaction
-    5. Response formatted for VAPI to relay to caller
+  - Webhook Flow:
+    1. VAPI Flow:
+       - VAPI agent discusses scheduling with caller
+       - Agent calls `/api/webhook/vapi` endpoint to:
+         - Check available time slots
+         - Book appointments when caller confirms
+       - Endpoint validates VAPI secret and handles request
+       - Response formatted for VAPI to relay to caller
+
+    2. Cal.com Flow:
+       - Cal.com sends webhook events to `/api/webhook/cal`
+       - Events include: created, rescheduled, cancelled bookings
+       - Endpoint validates Cal.com signature
+       - Updates appointment status in database
+       - Triggers any necessary notifications
+
   - Security:
-    - Endpoint protected by our generated API key (x-vapi-secret header)
-    - Cal.com credentials stored in environment variables
-    - VAPI configured to include our API key in tool requests
-  
+    - VAPI endpoint protected by our generated API key (x-vapi-secret header)
+    - Cal.com endpoint protected by webhook signature verification
+    - All credentials stored in environment variables
+
 - **Resend Integration**
   - Handles email communications
   - Sends follow-up emails

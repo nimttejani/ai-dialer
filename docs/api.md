@@ -83,19 +83,16 @@ Enable or disable the automation system.
 }
 ```
 
-### Cal.com Integration API
+### Webhook Endpoints
 
-#### POST `/api/cal`
-Endpoint for Cal.com operations, protected by our API key and called by VAPI.
+### VAPI Integration
+
+#### POST `/api/webhook/vapi`
+Endpoint for VAPI agent to check availability and book appointments.
 
 **Authentication:**
 ```http
 x-vapi-secret: YOUR_GENERATED_API_KEY
-```
-
-**Environment Variables:**
-```bash
-VAPI_SECRET_KEY=your_generated_api_key  # API key for authenticating VAPI requests
 ```
 
 **Request Body:**
@@ -135,54 +132,46 @@ VAPI_SECRET_KEY=your_generated_api_key  # API key for authenticating VAPI reques
   booking: {
     id: string;
     startTime: string;
-    // Other booking details from Cal.com
   };
 }
 ```
 
-3. Error Response
+### Cal.com Integration
+
+#### POST `/api/webhook/cal`
+Endpoint for receiving Cal.com webhook events.
+
+**Authentication:**
+```http
+cal-signature: SIGNATURE_FROM_CALCOM
+```
+
+**Request Body:**
 ```typescript
 {
-  success: false;
-  message: string; // Error message formatted for VAPI to read
+  triggerEvent: 'BOOKING_CREATED' | 'BOOKING_RESCHEDULED' | 'BOOKING_CANCELLED';
+  payload: {
+    uid: string;
+    startTime?: string;
+    endTime?: string;
+    status: string;
+    cancellationReason?: string;
+    attendees?: Array<{
+      email: string;
+      name: string;
+      phone?: string;
+    }>;
+  };
 }
 ```
 
-**Example Usage:**
+**Response:**
 ```typescript
-// Check Availability
-const availabilityResponse = await fetch('/api/cal', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'x-vapi-secret': process.env.VAPI_SECRET_KEY
-  },
-  body: JSON.stringify({
-    action: 'check_availability'
-  })
-});
-
-// Book Appointment
-const bookingResponse = await fetch('/api/cal', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'x-vapi-secret': process.env.VAPI_SECRET_KEY
-  },
-  body: JSON.stringify({
-    action: 'book_appointment',
-    bookingDetails: {
-      name: 'John Smith',
-      email: 'john@hvaccompany.com',
-      company: 'HVAC Solutions Inc',
-      phone: '+1234567890',
-      startTime: '2024-03-25T09:00:00Z'
-    }
-  })
-});
+{
+  success: true;
+  message: string; // e.g., "Successfully processed BOOKING_CREATED event"
+}
 ```
-
-Note: This endpoint is exclusively for use by the VAPI agent during calls. It is not intended for direct frontend use.
 
 ## Real-time Subscriptions
 
