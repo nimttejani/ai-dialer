@@ -19,6 +19,7 @@ This system automates the process of calling HVAC companies to book product demo
 
 - **Frontend**: Next.js 15 with App Router
 - **Database**: Supabase Postgres
+- **Package Manager**: pnpm
 - **Automation**: Vercel Cron
 - **External Services**:
   - VAPI.ai - Voice calls
@@ -30,6 +31,7 @@ This system automates the process of calling HVAC companies to book product demo
 ### Prerequisites
 
 - Node.js 18+
+- pnpm (`npm install -g pnpm`)
 - Supabase account
 - VAPI.ai account
 - Cal.com account
@@ -46,7 +48,10 @@ cp .env.example .env.local
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 VAPI_API_KEY=your_vapi_key
+VAPI_ASSISTANT_ID=your_assistant_id
+VAPI_PHONE_NUMBER_ID=your_phone_number_id
 CALCOM_API_KEY=your_calcom_key
 RESEND_API_KEY=your_resend_key
 ```
@@ -55,10 +60,28 @@ RESEND_API_KEY=your_resend_key
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Run development server
-npm run dev
+pnpm dev
+```
+
+### Testing the Cron Job
+
+1. Start the development server:
+```bash
+pnpm dev
+```
+
+2. Add a test lead to your database through Supabase:
+```sql
+INSERT INTO leads (company_name, phone, email, status)
+VALUES ('Test Company', '+1234567890', 'test@example.com', 'pending');
+```
+
+3. Trigger the cron job:
+```bash
+curl http://localhost:3000/api/cron
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the application.
