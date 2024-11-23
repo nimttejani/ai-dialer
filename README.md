@@ -89,6 +89,8 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 - [Architecture Overview](/docs/architecture.md)
 - [API Documentation](/docs/api.md)
+- [Environment Setup](./docs/environment-setup.md)
+- [Next.js 15 API Patterns](./docs/next-api-patterns.md)
 
 ## Development Workflow
 
