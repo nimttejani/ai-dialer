@@ -12,8 +12,8 @@ const bookingRequestSchema = z.object({
     company: z.string(),
     phone: z.string(),
     notes: z.string().optional(),
-    startTime: z.string().optional(), // Required only for booking
-  }).optional(), // Required only for booking
+    startTime: z.string(), 
+  }).optional(), 
 });
 
 // Validate request authentication

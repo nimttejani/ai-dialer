@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { z } from 'zod';
+import * as crypto from 'crypto';
 
 // Webhook event schema
 const webhookEventSchema = z.object({
@@ -20,15 +21,44 @@ const webhookEventSchema = z.object({
 });
 
 // Verify Cal.com webhook signature
-function verifyCalSignature(request: Request): boolean {
-  const signature = request.headers.get('cal-signature');
+async function verifyCalSignature(request: Request): Promise<boolean> {
+  const signature = request.headers.get('x-cal-signature-256');
   if (!signature || !process.env.CALCOM_WEBHOOK_SECRET) {
     return false;
   }
 
-  // TODO: Implement proper signature verification
-  // For MVP, we'll just check if the secret exists
-  return true;
+  try {
+    // Clone the request since we need to read the body twice
+    const clonedRequest = request.clone();
+    const rawBody = await clonedRequest.text();
+
+    // Create HMAC using the webhook secret
+    const hmac = crypto.createHmac('sha256', process.env.CALCOM_WEBHOOK_SECRET);
+    hmac.update(rawBody);
+    const expectedSignature = hmac.digest('hex');
+
+    // Compare signatures using timing-safe comparison
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expectedSignature)
+    );
+  } catch (error) {
+    console.error('Error verifying webhook signature:', error);
+    return false;
+  }
+}
+
+// Define a precise type for appointment data
+interface AppointmentData {
+  cal_booking_uid: string;
+  status: string;
+  updated_at: string;
+  start_time?: string;
+  end_time?: string;
+  customer_email?: string;
+  customer_name?: string;
+  customer_phone?: string;
+  cancellation_reason?: string;
 }
 
 // Update appointment in database
@@ -36,7 +66,7 @@ async function updateAppointment(event: z.infer<typeof webhookEventSchema>) {
   const { triggerEvent, payload } = event;
 
   // Base appointment data
-  const appointmentData: Record<string, any> = {
+  const appointmentData: AppointmentData = {
     cal_booking_uid: payload.uid,
     status: payload.status.toLowerCase(),
     updated_at: new Date().toISOString()
@@ -77,7 +107,7 @@ async function updateAppointment(event: z.infer<typeof webhookEventSchema>) {
 export async function POST(request: Request) {
   try {
     // Verify Cal.com webhook signature
-    if (!verifyCalSignature(request)) {
+    if (!await verifyCalSignature(request)) {
       return NextResponse.json(
         { error: 'Invalid signature' },
         { status: 401 }
