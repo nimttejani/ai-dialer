@@ -15,9 +15,17 @@ The HVAC Sales Automation system is designed to automate outbound sales calls to
 
 ### Database Layer
 - **Platform**: Supabase Postgres
-- **Key Tables**:
-  - `leads`: Stores lead information and status
-  - `lead_status`: Enum type for tracking lead lifecycle
+- **Schema**:
+  - `leads` table:
+    - `id`: UUID (primary key)
+    - `company_name`: text
+    - `phone`: text
+    - `email`: text
+    - `status`: enum ('pending', 'calling', 'no_answer', 'scheduled', 'not_interested')
+    - `call_attempts`: integer
+    - `last_called_at`: timestamp
+    - `created_at`: timestamp
+    - `updated_at`: timestamp
 
 ### Integration Layer
 - **VAPI.ai Integration**
@@ -37,7 +45,18 @@ The HVAC Sales Automation system is designed to automate outbound sales calls to
 ### Automation Layer
 - **Vercel Cron Jobs**
   - 5-minute interval scheduling
-  - Lead qualification logic
+  - Lead qualification logic:
+    ```sql
+    SELECT * FROM leads 
+    WHERE status = 'pending'
+      AND (last_called_at IS NULL OR last_called_at < now() - interval '4 hours')
+      AND call_attempts < 2
+    LIMIT 5;
+    ```
+  - Status transition flow:
+    ```
+    pending -> calling -> (no_answer | scheduled | not_interested)
+    ```
   - Rate limiting (5 leads per run)
 
 ## Data Flow

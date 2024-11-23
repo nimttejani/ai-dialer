@@ -4,6 +4,7 @@ create extension if not exists "uuid-ossp";
 -- Create enum for lead status
 create type lead_status as enum (
   'pending',
+  'calling',
   'no_answer',
   'scheduled',
   'not_interested'
