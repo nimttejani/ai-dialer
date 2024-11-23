@@ -327,7 +327,9 @@ export function LeadTable() {
   const [showCSVPreview, setShowCSVPreview] = useState(false);
   const [sortConfig, setSortConfig] = useState<SortConfig>([]);
   const [filterConfig, setFilterConfig] = useState<FilterCriterion[]>([]);
+  const [rawLeads, setRawLeads] = useState<Lead[]>([]);
 
+  // Load sort config from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem("leadsTableSort");
     try {
@@ -338,23 +340,25 @@ export function LeadTable() {
     }
   }, []);
 
+  // Focus input when editing cell
   useEffect(() => {
     if (editingCell && inputRef.current) {
       inputRef.current.focus();
     }
   }, [editingCell]);
 
+  // Process leads when sort or filter config changes
   useEffect(() => {
-    const loadAndProcessLeads = async () => {
-      const originalLeads = await fetchLeads();
-      if (originalLeads) {
-        const processedLeads = getFilteredAndSortedLeads(originalLeads);
-        setLeads(processedLeads);
-      }
-    };
+    if (rawLeads.length > 0) {
+      const processedLeads = getFilteredAndSortedLeads(rawLeads);
+      setLeads(processedLeads);
+    }
+  }, [sortConfig, filterConfig, rawLeads]);
 
-    loadAndProcessLeads();
-  }, [sortConfig, filterConfig]);
+  // Initial fetch of leads
+  useEffect(() => {
+    fetchLeads();
+  }, []);
 
   const fetchLeads = async () => {
     const { data, error } = await supabase
@@ -368,10 +372,14 @@ export function LeadTable() {
         description: error.message,
         variant: "destructive",
       });
-      return null;
+      return;
     }
 
-    return data;
+    if (data) {
+      setRawLeads(data);
+      const processedLeads = getFilteredAndSortedLeads(data);
+      setLeads(processedLeads);
+    }
   };
 
   const toggleAll = () => {
