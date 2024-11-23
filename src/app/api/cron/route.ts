@@ -4,7 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) throw new Error('NEXT_PUBLIC_SUPABASE_URL is required')
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required')
 if (!process.env.VAPI_API_KEY) throw new Error('VAPI_API_KEY is required')
-if (!process.env.VAPI_AGENT_ID) throw new Error('VAPI_AGENT_ID is required')
+if (!process.env.VAPI_ASSISTANT_ID) throw new Error('VAPI_ASSISTANT_ID is required')
+if (!process.env.VAPI_PHONE_NUMBER_ID) throw new Error('VAPI_PHONE_NUMBER_ID is required')
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -38,22 +39,17 @@ async function getAutomationSettings() {
 
 // Initiate a VAPI call
 async function initiateVapiCall(lead: any) {
-  const response = await fetch('https://api.vapi.ai/call/start', {
+  const response = await fetch('https://api.vapi.ai/call', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${process.env.VAPI_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      agent_id: process.env.VAPI_AGENT_ID,
-      caller_id: process.env.VAPI_CALLER_ID,
+      phoneNumberId: process.env.VAPI_PHONE_NUMBER_ID,
+      assistantId: process.env.VAPI_ASSISTANT_ID,
       customer: {
-        phone_number: lead.phone,
-        company_name: lead.company_name,
-      },
-      // Add any other data needed by your VAPI agent
-      metadata: {
-        lead_id: lead.id,
+        number: lead.phone
       }
     })
   })
@@ -106,6 +102,7 @@ export async function GET() {
             .update({
               call_attempts: lead.call_attempts + 1,
               last_called_at: new Date().toISOString(),
+              status: 'calling'
             })
             .eq('id', lead.id)
 
@@ -114,7 +111,7 @@ export async function GET() {
             return { lead, success: false, error: updateError }
           }
 
-          return { lead, success: true, callId: callResult.call_id }
+          return { lead, success: true, callId: callResult.id }
         } catch (error) {
           console.error(`Error processing lead ${lead.id}:`, error)
           return { lead, success: false, error }
