@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/lib/supabase';
-import { AutomationControl } from "@/components/automation-control";
+import { AutomationControl } from "@/components/automation-control"; // Renamed import
 import { useState, useEffect } from "react";
 import { leadsService } from "@/lib/services/leads";
 import { settingsService } from "@/lib/services/settings";
@@ -75,12 +75,47 @@ export default function DashboardPage() {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <Skeleton className="h-9 w-[200px]" />
-          <Skeleton className="h-9 w-[100px]" />
+          <Skeleton className="h-[36px] w-[200px]" />
+          <Skeleton className="h-[36px] w-[80px]" />
         </div>
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-[300px]" />
-          <Skeleton className="h-[400px] w-full" />
+        {/* Automation Control Skeleton */}
+        <Skeleton className="h-[32px] w-full" />
+        {/* Lead Table Skeleton */}
+        <div>
+          {/* Table Actions */}
+          <div className="mb-4 flex justify-between items-center">
+            <div className="flex space-x-2">
+              <Skeleton className="h-9 w-[90px]" />
+              <Skeleton className="h-9 w-[90px]" />
+            </div>
+            <Skeleton className="h-9 w-[90px]" />
+          </div>
+          {/* Table Header */}
+          <div className="rounded-md border">
+            <div className="border-b">
+              <div className="flex items-center h-10 px-2">
+                <Skeleton className="h-4 w-4 mr-4" />
+                {[200, 150, 120, 120, 120, 100].map((width, i) => (
+                  <div key={i} className="flex-1">
+                    <Skeleton className={`h-4 w-[${width}px]`} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Table Rows */}
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="border-b last:border-none">
+                <div className="flex items-center h-12 px-2">
+                  <Skeleton className="h-4 w-4 mr-4" />
+                  {[200, 150, 120, 120, 120, 100].map((width, j) => (
+                    <div key={j} className="flex-1">
+                      <Skeleton className={`h-4 w-[${width}px]`} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );

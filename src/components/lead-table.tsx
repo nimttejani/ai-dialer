@@ -63,7 +63,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { leadsService } from "@/lib/services/leads";
-import { OutboundCallControl } from "./outbound-call-control";
 
 // First, let's define a mapping of display fields to database fields
 const FIELD_MAPPINGS = {
@@ -981,7 +980,6 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
 
   return (
     <div className="space-y-4">
-      <OutboundCallControl />
       <div className="flex justify-between items-center">
         <div className="space-x-2 flex items-center">
           <Button
