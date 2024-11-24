@@ -39,11 +39,10 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <h1 className="text-3xl font-bold">Lead Management</h1>
         <Button onClick={handleSignOut}>Sign Out</Button>
       </div>
       <div className="space-y-4">
-        <h2 className="text-2xl font-bold">Lead Management</h2>
         <LeadTable />
       </div>
     </div>
