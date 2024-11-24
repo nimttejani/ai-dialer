@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/lib/supabase';
-import { AutomationControl } from "@/components/automation-control"; // Renamed import
+import { AutomationControl } from "@/components/automation-control";
 import { useState, useEffect } from "react";
 import { leadsService } from "@/lib/services/leads";
 import { settingsService } from "@/lib/services/settings";

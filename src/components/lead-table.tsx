@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -57,12 +58,10 @@ const FIELD_MAPPINGS = {
 
 const statusStyles = {
   pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
-  contacted: "bg-blue-100 text-blue-800 hover:bg-blue-200",
-  qualified: "bg-green-100 text-green-800 hover:bg-green-200",
-  unqualified: "bg-red-100 text-red-800 hover:bg-red-200",
-  callback_scheduled: "bg-purple-100 text-purple-800 hover:bg-purple-200",
-  converted: "bg-emerald-100 text-emerald-800 hover:bg-emerald-200",
-  not_interested: "bg-gray-100 text-gray-800 hover:bg-gray-200",
+  calling: "bg-blue-100 text-blue-800 hover:bg-blue-200",
+  no_answer: "bg-orange-100 text-orange-800 hover:bg-orange-200",
+  scheduled: "bg-purple-100 text-purple-800 hover:bg-purple-200",
+  not_interested: "bg-gray-100 text-gray-800 hover:bg-gray-200"
 } as const;
 
 interface CSVPreviewData {
@@ -613,8 +612,9 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="calling">Calling</SelectItem>
               <SelectItem value="no_answer">No Answer</SelectItem>
+              <SelectItem value="scheduled">Scheduled</SelectItem>
               <SelectItem value="not_interested">Not Interested</SelectItem>
             </SelectContent>
           </Select>
@@ -864,7 +864,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
           <DialogHeader>
             <DialogTitle>Add New Lead</DialogTitle>
             <DialogDescription>
-              Enter the lead's information below.
+              Enter the lead&apos;s information below.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
