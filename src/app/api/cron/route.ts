@@ -1,42 +1,41 @@
 import { NextResponse, Request } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { settingsService } from '@/lib/services/settings'
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) throw new Error('NEXT_PUBLIC_SUPABASE_URL is required')
-if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is required')
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required')
 if (!process.env.VAPI_API_KEY) throw new Error('VAPI_API_KEY is required')
 if (!process.env.VAPI_ASSISTANT_ID) throw new Error('VAPI_ASSISTANT_ID is required')
 if (!process.env.VAPI_PHONE_NUMBER_ID) throw new Error('VAPI_PHONE_NUMBER_ID is required')
 if (!process.env.CRON_SECRET) throw new Error('CRON_SECRET is required')
 
+// Create a Supabase client with the service role key to bypass RLS
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
 )
 
 // Fetch automation settings from Supabase
 async function getAutomationSettings() {
   console.log('Fetching automation settings...');
-  const { data, error } = await supabase
-    .from('settings')
-    .select('*')
-    .single()
-
-  if (error) {
-    console.log('Error fetching settings:', error);
+  try {
+    const settings = await settingsService.getAutomationSettings();
+    console.log('Settings retrieved:', settings);
+    return settings;
+  } catch (error) {
+    console.error('Error fetching settings:', error);
     return {
       isAutomationEnabled: false,
       maxCallsPerBatch: 5,
       retryIntervalHours: 4,
       maxAttempts: 3
     }
-  }
-
-  console.log('Settings retrieved:', data);
-  return {
-    isAutomationEnabled: data.automation_enabled ?? false,
-    maxCallsPerBatch: data.max_calls_batch ?? 5,
-    retryIntervalHours: data.retry_interval ?? 4,
-    maxAttempts: data.max_attempts ?? 3
   }
 }
 

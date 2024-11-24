@@ -15,6 +15,26 @@ The HVAC Sales Automation system is designed to automate outbound sales calls to
 
 ### Database Layer
 - **Platform**: Supabase Postgres
+- **Client Strategy**:
+  - Frontend: Uses `createClientComponentClient()` for authenticated user operations
+  - Server (API Routes): Uses `createClient()` with service role key for privileged operations
+  - Authentication handled via Next.js Auth Helpers
+  - Row Level Security (RLS) policies enforce access control
+
+- **Services Layer**:
+  - Structure:
+    ```
+    /src/lib/services/
+    ├── leads.ts       # Lead management operations
+    ├── settings.ts    # System settings and automation config
+    └── appointments.ts # Appointment scheduling and management
+    ```
+  - Each service encapsulates:
+    - Database operations
+    - Business logic
+    - Error handling
+    - Type definitions
+
 - **Schema**:
   - `leads` table:
     - `id`: UUID (primary key)
@@ -26,6 +46,28 @@ The HVAC Sales Automation system is designed to automate outbound sales calls to
     - `last_called_at`: timestamp
     - `created_at`: timestamp
     - `updated_at`: timestamp
+  
+  - `settings` table:
+    - `id`: UUID (primary key)
+    - `automation_enabled`: boolean
+    - `max_calls_batch`: integer
+    - `retry_interval`: integer
+    - `max_attempts`: integer
+    - `created_at`: timestamp
+    - `updated_at`: timestamp
+
+  - `appointments` table:
+    - `id`: UUID (primary key)
+    - `cal_booking_uid`: text (unique)
+    - `customer_name`: text
+    - `customer_email`: text
+    - `customer_phone`: text
+    - `start_time`: timestamptz
+    - `end_time`: timestamptz
+    - `status`: text
+    - `cancellation_reason`: text
+    - `created_at`: timestamptz
+    - `updated_at`: timestamptz
 
 ### Integration Layer
 - **VAPI.ai Integration**
