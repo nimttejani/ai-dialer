@@ -444,6 +444,10 @@ export function LeadTable() {
       lead.id === id ? { ...lead, [field]: value } : lead
     );
     setLeads(updatedLeads);
+    // Update rawLeads as well to prevent useEffect from overwriting
+    setRawLeads(rawLeads.map((lead) =>
+      lead.id === id ? { ...lead, [field]: value } : lead
+    ));
   };
 
   const handleInputBlur = async (
@@ -457,13 +461,15 @@ export function LeadTable() {
         throw new Error("Failed to update lead");
       }
       setEditingCell(null);
-      fetchLeads();
+      // Don't fetch leads here as it will disrupt the editing experience
     } catch (error) {
       toast({
         title: "Error updating lead",
         description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
+      // Revert the changes in case of error
+      fetchLeads();
     }
   };
 
@@ -477,6 +483,10 @@ export function LeadTable() {
         lead.id === id ? { ...lead, status: value } : lead
       );
       setLeads(updatedLeads);
+      // Update rawLeads as well to prevent useEffect from overwriting
+      setRawLeads(rawLeads.map((lead) =>
+        lead.id === id ? { ...lead, status: value } : lead
+      ));
       setEditingCell(null);
     } catch (error) {
       toast({
@@ -484,6 +494,8 @@ export function LeadTable() {
         description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
+      // Revert the changes in case of error
+      fetchLeads();
     }
   };
 
