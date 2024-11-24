@@ -1,6 +1,6 @@
 import { NextResponse, Request } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { settingsService } from '@/lib/services/settings'
+import { SettingsService } from '@/lib/services/settings'
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) throw new Error('NEXT_PUBLIC_SUPABASE_URL is required')
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required')
@@ -21,6 +21,9 @@ const supabase = createClient(
   }
 )
 
+// Create a settings service instance with the service role client
+const settingsService = new SettingsService(supabase)
+
 // Fetch automation settings from Supabase
 async function getAutomationSettings() {
   console.log('Fetching automation settings...');
@@ -31,10 +34,10 @@ async function getAutomationSettings() {
   } catch (error) {
     console.error('Error fetching settings:', error);
     return {
-      isAutomationEnabled: false,
-      maxCallsPerBatch: 5,
-      retryIntervalHours: 4,
-      maxAttempts: 3
+      automation_enabled: false,
+      max_calls_batch: 5,
+      retry_interval: 4,
+      max_attempts: 3
     }
   }
 }
@@ -86,7 +89,7 @@ export async function GET(request: Request) {
     const settings = await getAutomationSettings()
     console.log('Automation settings:', settings);
 
-    if (!settings.isAutomationEnabled) {
+    if (!settings.automation_enabled) {
       console.log('Automation is disabled, exiting');
       return NextResponse.json({ message: 'Automation is disabled' })
     }
@@ -97,10 +100,10 @@ export async function GET(request: Request) {
       .from('leads')
       .select('*')
       .eq('status', 'pending')
-      .or(`last_called_at.is.null,last_called_at.lt.${new Date(Date.now() - settings.retryIntervalHours * 60 * 60 * 1000).toISOString()}`)
-      .lt('call_attempts', settings.maxAttempts)
+      .or(`last_called_at.is.null,last_called_at.lt.${new Date(Date.now() - settings.retry_interval * 60 * 60 * 1000).toISOString()}`)
+      .lt('call_attempts', settings.max_attempts)
       .order('last_called_at', { ascending: true, nullsFirst: true })
-      .limit(settings.maxCallsPerBatch)
+      .limit(settings.max_calls_batch)
 
     if (fetchError) {
       console.log('Error fetching leads:', fetchError);
