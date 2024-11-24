@@ -1,35 +1,14 @@
 "use client";
 
 import { LeadTable } from "@/components/lead-table";
-import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, getAuthDebugInfo } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
-
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-      }
-    };
-
-    checkSession();
-  }, [router]);
-
-  useEffect(() => {
-    // Debug auth state
-    const checkAuth = async () => {
-      const authInfo = await getAuthDebugInfo();
-      console.log('Auth Debug Info:', authInfo);
-    };
-    checkAuth();
-  }, []);
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
