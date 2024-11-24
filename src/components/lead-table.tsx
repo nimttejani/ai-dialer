@@ -461,7 +461,6 @@ export function LeadTable() {
         throw new Error("Failed to update lead");
       }
       setEditingCell(null);
-      // Don't fetch leads here as it will disrupt the editing experience
     } catch (error) {
       toast({
         title: "Error updating lead",
@@ -784,7 +783,9 @@ export function LeadTable() {
             value={lead[field] as string}
             onChange={(e) => handleInputChange(e, lead.id, field)}
             onBlur={(e) => handleInputBlur(lead.id, field, e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, lead.id, field, lead[field] as string)}
             className="w-full h-full p-0 border-none focus:ring-0"
+            autoFocus
           />
         );
       }
@@ -904,6 +905,78 @@ export function LeadTable() {
       )}
     </TableBody>
   );
+
+  const moveToNextCell = (currentId: string, currentField: keyof Lead, reverse: boolean = false) => {
+    const editableFields = Object.keys(FIELD_MAPPINGS).filter(
+      (field) => !["call_attempts", "last_called_at", "created_at", "updated_at"].includes(field)
+    ) as (keyof Lead)[];
+
+    const currentFieldIndex = editableFields.indexOf(currentField);
+    const currentLeadIndex = leads.findIndex((lead) => lead.id === currentId);
+
+    if (currentFieldIndex === -1 || currentLeadIndex === -1) return;
+
+    if (reverse) {
+      // If there's a previous field in the current row
+      if (currentFieldIndex > 0) {
+        setEditingCell({
+          id: currentId,
+          field: editableFields[currentFieldIndex - 1]
+        });
+      }
+      // If we're at the first field and there's a previous row
+      else if (currentLeadIndex > 0) {
+        setEditingCell({
+          id: leads[currentLeadIndex - 1].id,
+          field: editableFields[editableFields.length - 1]
+        });
+      }
+    } else {
+      // If there's a next field in the current row
+      if (currentFieldIndex < editableFields.length - 1) {
+        setEditingCell({
+          id: currentId,
+          field: editableFields[currentFieldIndex + 1]
+        });
+      }
+      // If we're at the last field and there's a next row
+      else if (currentLeadIndex < leads.length - 1) {
+        setEditingCell({
+          id: leads[currentLeadIndex + 1].id,
+          field: editableFields[0]
+        });
+      }
+    }
+  };
+
+  const handleKeyDown = async (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    id: string,
+    field: keyof Lead,
+    value: string
+  ) => {
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      try {
+        const response = await handleUpdateLead(id, { [field]: value });
+        if (!response) {
+          throw new Error("Failed to update lead");
+        }
+        if (e.key === 'Tab') {
+          moveToNextCell(id, field, e.shiftKey);
+        } else {
+          setEditingCell(null);
+        }
+      } catch (error) {
+        toast({
+          title: "Error updating lead",
+          description: error instanceof Error ? error.message : "An error occurred",
+          variant: "destructive",
+        });
+        fetchLeads();
+      }
+    }
+  };
 
   return (
     <div className="space-y-4">
