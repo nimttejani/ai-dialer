@@ -6,8 +6,14 @@ import { settingsService } from '@/lib/services/settings'
 import { useToast } from '@/hooks/use-toast'
 import { Skeleton } from '@/components/ui/skeleton'
 
-export function AutomationControl() {
-  const [enabled, setEnabled] = useState(false)
+// Define the type for AutomationSettings
+type AutomationSettings = {
+  automation_enabled: boolean;
+}
+
+// Update the component to accept initialSettings prop
+export function AutomationControl({ initialSettings }: { initialSettings: AutomationSettings | null }) {
+  const [enabled, setEnabled] = useState(initialSettings?.automation_enabled || false)
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
@@ -18,8 +24,13 @@ export function AutomationControl() {
       setLoading(false)
     }
 
-    fetchSettings()
-  }, [])
+    // Only fetch settings if no initial settings were provided
+    if (!initialSettings) {
+      fetchSettings()
+    } else {
+      setLoading(false)
+    }
+  }, [initialSettings])
 
   const handleToggle = async (newState: boolean) => {
     setLoading(true)
