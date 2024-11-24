@@ -1,14 +1,13 @@
 "use client";
 
 import { LeadTable } from "@/components/lead-table";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { supabase, getAuthDebugInfo } from '@/lib/supabase';
 
 export default function DashboardPage() {
-  const supabase = createClientComponentClient();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -16,12 +15,21 @@ export default function DashboardPage() {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        router.push('/login');
+        router.push('/auth');
       }
     };
 
     checkSession();
-  }, [supabase, router]);
+  }, [router]);
+
+  useEffect(() => {
+    // Debug auth state
+    const checkAuth = async () => {
+      const authInfo = await getAuthDebugInfo();
+      console.log('Auth Debug Info:', authInfo);
+    };
+    checkAuth();
+  }, []);
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -33,7 +41,7 @@ export default function DashboardPage() {
       });
       return;
     }
-    router.push('/login');
+    router.push('/auth');
   };
 
   return (
