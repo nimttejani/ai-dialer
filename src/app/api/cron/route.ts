@@ -15,13 +15,14 @@ const supabase = createClient(
 
 // Fetch automation settings from Supabase
 async function getAutomationSettings() {
+  console.log('Fetching automation settings...');
   const { data, error } = await supabase
     .from('settings')
     .select('*')
     .single()
 
   if (error) {
-    console.error('Error fetching settings:', error)
+    console.log('Error fetching settings:', error);
     return {
       isAutomationEnabled: false,
       maxCallsPerBatch: 5,
@@ -30,6 +31,7 @@ async function getAutomationSettings() {
     }
   }
 
+  console.log('Settings retrieved:', data);
   return {
     isAutomationEnabled: data.automation_enabled ?? false,
     maxCallsPerBatch: data.max_calls_batch ?? 5,
@@ -40,43 +42,58 @@ async function getAutomationSettings() {
 
 // Initiate a VAPI call
 async function initiateVapiCall(lead: any) {
+  console.log(`Initiating VAPI call for lead:`, lead);
+  
+  const payload = {
+    phoneNumberId: process.env.VAPI_PHONE_NUMBER_ID,
+    assistantId: process.env.VAPI_ASSISTANT_ID,
+    customer: {
+      number: lead.phone
+    }
+  };
+  console.log('VAPI request payload:', payload);
+
   const response = await fetch('https://api.vapi.ai/call', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${process.env.VAPI_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      phoneNumberId: process.env.VAPI_PHONE_NUMBER_ID,
-      assistantId: process.env.VAPI_ASSISTANT_ID,
-      customer: {
-        number: lead.phone
-      }
-    })
+    body: JSON.stringify(payload)
   })
 
+  const responseData = await response.text();
+  console.log(`VAPI API response (${response.status}):`, responseData);
+
   if (!response.ok) {
-    throw new Error(`Failed to initiate VAPI call: ${response.statusText}`)
+    throw new Error(`Failed to initiate VAPI call: ${response.status} ${response.statusText} - ${responseData}`)
   }
 
-  return response.json()
+  return JSON.parse(responseData);
 }
 
 export async function GET(request: Request) {
   try {
+    console.log('Cron job started');
+    
     // Verify cron authentication
-    if (request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+    const authHeader = request.headers.get('authorization');
+    console.log('Auth header present:', !!authHeader);
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
     // Get automation settings
     const settings = await getAutomationSettings()
+    console.log('Automation settings:', settings);
 
     if (!settings.isAutomationEnabled) {
+      console.log('Automation is disabled, exiting');
       return NextResponse.json({ message: 'Automation is disabled' })
     }
 
     // Fetch leads to process
+    console.log('Fetching pending leads...');
     const { data: leads, error: fetchError } = await supabase
       .from('leads')
       .select('*')
@@ -87,15 +104,17 @@ export async function GET(request: Request) {
       .limit(settings.maxCallsPerBatch)
 
     if (fetchError) {
-      console.error('Error fetching leads:', fetchError)
+      console.log('Error fetching leads:', fetchError);
       return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 })
     }
 
+    console.log(`Found ${leads?.length || 0} leads to process`);
     if (!leads || leads.length === 0) {
       return NextResponse.json({ message: 'No leads to process' })
     }
 
     // Initiate calls for each lead
+    console.log('Processing leads...');
     const results = await Promise.all(
       leads.map(async (lead) => {
         try {
@@ -113,13 +132,13 @@ export async function GET(request: Request) {
             .eq('id', lead.id)
 
           if (updateError) {
-            console.error('Error updating lead:', updateError)
+            console.log('Error updating lead:', updateError)
             return { lead, success: false, error: updateError }
           }
 
           return { lead, success: true, callId: callResult.id }
         } catch (error) {
-          console.error(`Error processing lead ${lead.id}:`, error)
+          console.log(`Error processing lead ${lead.id}:`, error)
           return { lead, success: false, error }
         }
       })
@@ -138,7 +157,7 @@ export async function GET(request: Request) {
       details: results
     })
   } catch (error) {
-    console.error('Cron job error:', error)
+    console.log('Cron job error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
