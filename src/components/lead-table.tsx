@@ -153,20 +153,33 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
   const [filterConfig, setFilterConfig] = useState<FilterCriterion[]>([]);
   const [rawLeads, setRawLeads] = useState<Lead[]>(initialLeads);
 
-  const fetchLeads = async () => {
+  const fetchLeads = async (showToast = false) => {
     const { data, error } = await leadsService.getLeads();
     if (error) {
       console.error("Error fetching leads:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch leads. Please try again.",
-        variant: "destructive",
-      });
+      if (showToast) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch leads. Please try again.",
+          variant: "destructive",
+        });
+      }
       return;
     }
     if (data) {
       setRawLeads(data);
+      if (showToast) {
+        toast({
+          title: "Success",
+          description: "Leads refreshed successfully",
+          variant: "success",
+        });
+      }
     }
+  };
+
+  const handleManualRefresh = () => {
+    fetchLeads(true);
   };
 
   const handleUpdateLead = async (id: string, updates: Partial<Lead>) => {
@@ -200,12 +213,13 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
       toast({
         title: "Success",
         description: `Successfully deleted ${selectedLeads.length} leads.`,
+        variant: "success",
       });
     }
 
     setIsDeleteDialogOpen(false);
     setSelectedLeads([]);
-    fetchLeads();
+    fetchLeads(false);
   };
 
   const handleCreateLead = async (lead: Omit<Lead, "id" | "created_at" | "updated_at">) => {
@@ -287,7 +301,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
         variant: "destructive",
       });
       // Revert the changes in case of error
-      fetchLeads();
+      fetchLeads(false);
     }
   };
 
@@ -313,7 +327,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
         variant: "destructive",
       });
       // Revert the changes in case of error
-      fetchLeads();
+      fetchLeads(false);
     }
   };
 
@@ -345,10 +359,11 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
       }
       setNewLead({});
       setIsAddingLead(false);
-      await fetchLeads();
+      await fetchLeads(false);
       toast({
         title: "Lead added",
         description: "New lead has been added successfully.",
+        variant: "success",
       });
     } catch (error) {
       toast({
@@ -477,10 +492,11 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
         toast({
           title: "CSV imported",
           description: `${data.length} lead(s) have been imported successfully.`,
+          variant: "success",
         });
       }
 
-      await fetchLeads();
+      await fetchLeads(false);
       setShowCSVPreview(false);
       setCSVPreviewData([]);
     } catch (error) {
@@ -576,7 +592,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
   }, [rawLeads, sortState, filterConfig]);
 
   useEffect(() => {
-    fetchLeads();
+    fetchLeads(false);
   }, []);
 
   const renderCell = (lead: Lead, field: keyof Lead) => {
@@ -772,7 +788,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
           description: error instanceof Error ? error.message : "An error occurred",
           variant: "destructive",
         });
-        fetchLeads();
+        fetchLeads(false);
       }
     }
   };
@@ -784,7 +800,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
           <Button
             variant="outline"
             size="icon"
-            onClick={fetchLeads}
+            onClick={handleManualRefresh}
             title="Refresh leads"
           >
             <RefreshCw className="h-4 w-4" />

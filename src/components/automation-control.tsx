@@ -32,6 +32,7 @@ export function AutomationControl() {
         description: newState 
           ? "System is now making calls to leads" 
           : "Outbound calling has been paused",
+        variant: "success",
       })
     } else {
       toast({
