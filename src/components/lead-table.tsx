@@ -645,16 +645,13 @@ export function LeadTable() {
     }));
 
     try {
-      const response = await Promise.all(
-        newLeads.map((lead) => leadsService.createLead(lead))
-      );
-
-      const errors = response.filter((r) => !r.success);
-      if (errors.length > 0) {
-        console.error("Error importing leads:", errors);
+      const { success, error } = await leadsService.createLeads(newLeads);
+      
+      if (!success) {
+        console.error("Error importing leads:", error);
         toast({
           title: "Error",
-          description: `Failed to import ${errors.length} leads. Please try again.`,
+          description: "Failed to import leads. Please try again.",
           variant: "destructive",
         });
       } else {
