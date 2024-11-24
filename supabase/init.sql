@@ -60,6 +60,26 @@ insert into settings (automation_enabled, max_calls_batch, retry_interval, max_a
 values (false, 5, 4, 3)
 on conflict (id) do nothing;
 
+-- Enable RLS for settings table
+alter table settings enable row level security;
+
+-- Create RLS policy for settings table
+create policy "Allow authenticated users to read settings"
+  on settings for select
+  to authenticated
+  using (true);
+
+create policy "Allow authenticated users to update settings"
+  on settings for update
+  to authenticated
+  using (true)
+  with check (true);
+
+create policy "Allow authenticated users to insert settings"
+  on settings for insert
+  to authenticated
+  with check (true);
+
 -- Create appointments table
 create table appointments (
   id uuid primary key default gen_random_uuid(),
@@ -89,7 +109,6 @@ create index idx_leads_last_called_at on leads(last_called_at);
 
 -- Enable RLS on all tables
 alter table leads enable row level security;
-alter table settings enable row level security;
 alter table appointments enable row level security;
 
 -- Drop existing policies if they exist
@@ -118,18 +137,6 @@ create policy "Enable delete access for authenticated users" on leads
   for delete
   to authenticated
   using (true);
-
--- RLS Policies for settings
-create policy "Enable read access for authenticated users" on settings
-  for select
-  to authenticated
-  using (true);
-
-create policy "Enable update access for authenticated users" on settings
-  for update
-  to authenticated
-  using (true)
-  with check (true);
 
 -- RLS Policies for appointments
 create policy "Enable read access for authenticated users" on appointments
