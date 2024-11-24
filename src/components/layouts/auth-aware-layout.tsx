@@ -23,22 +23,35 @@ export function AuthAwareLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClientComponentClient();
 
   useEffect(() => {
+    // First, check the initial session
     const checkAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setAuthenticated(!!session);
-        
-        // Handle routing based on auth state
-        if (!session && pathname !== "/login") {
-          router.push("/login");
-        }
-      } finally {
-        setLoading(false);
+      const { data: { session } } = await supabase.auth.getSession();
+      setAuthenticated(!!session);
+      
+      if (!session && pathname !== "/login") {
+        router.push("/login");
       }
+      setLoading(false);
     };
 
     checkAuth();
-  }, [supabase.auth, pathname, router]);
+
+    // Then listen for changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const isAuthenticated = !!session;
+      setAuthenticated(isAuthenticated);
+
+      if (!isAuthenticated && pathname !== "/login") {
+        router.push("/login");
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [pathname, router, supabase.auth]);
 
   if (loading) {
     return <LoadingScreen />;
@@ -49,10 +62,11 @@ export function AuthAwareLayout({ children }: { children: React.ReactNode }) {
     return children;
   }
 
-  // Require authentication for all other pages
-  if (!authenticated) {
-    return <LoadingScreen />;
+  // Show dashboard layout for authenticated users
+  if (authenticated) {
+    return <DashboardLayout>{children}</DashboardLayout>;
   }
 
-  return <DashboardLayout>{children}</DashboardLayout>;
+  // This should never be reached due to the redirect in useEffect
+  return <LoadingScreen />;
 }
