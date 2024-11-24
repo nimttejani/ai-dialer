@@ -40,31 +40,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  PlusCircle,
-  Upload,
-  ArrowUp,
-  ArrowDown,
-  ArrowUpDown,
-  RefreshCw,
-} from "lucide-react";
+import { RefreshCw, ArrowUp, ArrowDown } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 import { Lead } from "@/lib/supabase";
-import {
-  type SortDirection,
-  type SortCriterion,
-  type FilterCriterion,
-} from "@/lib/types";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { type FilterCriterion } from "@/lib/types";
 import { leadsService } from "@/lib/services/leads";
 
-// First, let's define a mapping of display fields to database fields
 const FIELD_MAPPINGS = {
   company_name: "Company Name",
   phone: "Phone",
@@ -74,7 +55,6 @@ const FIELD_MAPPINGS = {
   last_called_at: "Last Called At",
 } as const;
 
-// Add status styles mapping
 const statusStyles = {
   pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
   contacted: "bg-blue-100 text-blue-800 hover:bg-blue-200",
@@ -85,7 +65,6 @@ const statusStyles = {
   not_interested: "bg-gray-100 text-gray-800 hover:bg-gray-200",
 } as const;
 
-// Add these new interfaces and type
 interface CSVPreviewData {
   company_name: string;
   phone: string;
@@ -103,7 +82,6 @@ interface LeadTableProps {
   initialLeads: Lead[];
 }
 
-// Add this new component for the CSV preview dialog
 function CSVPreviewDialog({
   previewData,
   onConfirm,
@@ -151,171 +129,9 @@ function CSVPreviewDialog({
   );
 }
 
-type SortConfig = SortCriterion[];
-
-// Add the HeaderMenuProps interface at the top with other interfaces
-interface HeaderMenuProps {
-  column: string;
-  label: string;
-  sortCriterion?: SortCriterion;
-  filterCriterion?: FilterCriterion;
-  sortConfig: SortConfig;
-  onSortChange: (direction: SortDirection) => void;
-  onFilterChange: (value: string, type: "contains" | "equals") => void;
-  onFilterRemove: () => void;
-  isEnum?: boolean;
-}
-
-// Update the HeaderMenu component with proper event handling
-function HeaderMenu({
-  column,
-  label,
-  sortCriterion,
-  filterCriterion,
-  sortConfig,
-  onSortChange,
-  onFilterChange,
-  onFilterRemove,
-  isEnum,
-}: HeaderMenuProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [filterValue, setFilterValue] = useState(filterCriterion?.value || "");
-
-  useEffect(() => {
-    setFilterValue(filterCriterion?.value || "");
-  }, [filterCriterion]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (filterValue !== filterCriterion?.value) {
-        if (filterValue) {
-          onFilterChange(filterValue, "contains");
-        } else {
-          onFilterRemove();
-        }
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [filterValue, filterCriterion?.value, onFilterChange, onFilterRemove]);
-
-  return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <div className="flex items-center gap-1 px-2 py-1 rounded hover:bg-accent">
-          <div className="flex items-center">
-            {sortCriterion ? (
-              <div className="flex items-center -space-x-1">
-                {sortCriterion.direction === "asc" ? (
-                  <ArrowUp className="h-4 w-4" />
-                ) : (
-                  <ArrowDown className="h-4 w-4" />
-                )}
-                {Array.isArray(sortConfig) && sortConfig.length > 1 && (
-                  <span className="text-xs font-mono translate-y-[1px] ml-1">
-                    {sortConfig.findIndex((c) => c.column === column) + 1}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <ArrowUpDown className="h-4 w-4" />
-            )}
-          </div>
-          <span>{label}</span>
-          {filterCriterion && (
-            <Badge variant="secondary" className="ml-1">
-              Filtered
-            </Badge>
-          )}
-        </div>
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-64 space-y-4"
-        onInteractOutside={(e) => {
-          if (
-            (e.target as HTMLElement).closest("input") ||
-            window.getSelection()?.toString()
-          ) {
-            e.preventDefault();
-          }
-        }}
-      >
-        <div className="space-y-2">
-          <Label>Sort</Label>
-          <RadioGroup
-            value={sortCriterion?.direction || "none"}
-            onValueChange={(value: SortDirection) => {
-              onSortChange(value);
-            }}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="none" id={`${column}-none`} />
-              <Label htmlFor={`${column}-none`}>None</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="asc" id={`${column}-asc`} />
-              <Label htmlFor={`${column}-asc`}>Ascending</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="desc" id={`${column}-desc`} />
-              <Label htmlFor={`${column}-desc`}>Descending</Label>
-            </div>
-          </RadioGroup>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Filter</Label>
-          {isEnum ? (
-            <Select
-              value={filterValue}
-              onValueChange={(value) => {
-                setFilterValue(value);
-                if (value === "__clear__") {
-                  onFilterRemove();
-                } else {
-                  onFilterChange(value, "equals");
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select status..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__clear__">Clear filter</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="scheduled">Scheduled</SelectItem>
-                <SelectItem value="no_answer">No Answer</SelectItem>
-                <SelectItem value="not_interested">Not Interested</SelectItem>
-              </SelectContent>
-            </Select>
-          ) : (
-            <div className="space-y-2">
-              <Input
-                placeholder="Filter value..."
-                value={filterValue}
-                onChange={(e) => {
-                  setFilterValue(e.target.value);
-                }}
-              />
-              {filterCriterion && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setFilterValue("");
-                    onFilterRemove();
-                  }}
-                  className="w-full"
-                >
-                  Clear Filter
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
+interface SortState {
+  column: keyof Lead | null;
+  direction: "asc" | "desc" | null;
 }
 
 export function LeadTable({ initialLeads }: LeadTableProps) {
@@ -333,7 +149,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [csvPreviewData, setCSVPreviewData] = useState<CSVPreviewData[]>([]);
   const [showCSVPreview, setShowCSVPreview] = useState(false);
-  const [sortConfig, setSortConfig] = useState<SortConfig>([]);
+  const [sortState, setSortState] = useState<SortState>({ column: null, direction: null });
   const [filterConfig, setFilterConfig] = useState<FilterCriterion[]>([]);
   const [rawLeads, setRawLeads] = useState<Lead[]>(initialLeads);
 
@@ -677,48 +493,59 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
   };
 
   const getSortedLeads = (leadsToSort: Lead[]): Lead[] => {
-    if (!Array.isArray(sortConfig) || sortConfig.length === 0) {
+    if (!sortState.column || !sortState.direction) {
       return leadsToSort;
     }
 
     return [...leadsToSort].sort((a, b) => {
-      for (const { column, direction } of sortConfig) {
-        const aValue = a[column as keyof Lead];
-        const bValue = b[column as keyof Lead];
+      const column = sortState.column!;
+      const direction = sortState.direction!;
+      const aValue = a[column];
+      const bValue = b[column];
 
-        // Skip to next sort criterion if values are equal
-        if (aValue === bValue) continue;
+      // Handle null values
+      if (aValue === null) return direction === "asc" ? 1 : -1;
+      if (bValue === null) return direction === "asc" ? -1 : 1;
 
-        // Handle null values
-        if (aValue === null) return direction === "asc" ? 1 : -1;
-        if (bValue === null) return direction === "asc" ? -1 : 1;
-
-        // Compare dates
-        if (
-          column === "last_called_at" ||
-          column === "created_at" ||
-          column === "updated_at"
-        ) {
-          const aDate = new Date(aValue as string).getTime();
-          const bDate = new Date(bValue as string).getTime();
-          return direction === "asc" ? aDate - bDate : bDate - aDate;
-        }
-
-        // Compare numbers
-        if (typeof aValue === "number" && typeof bValue === "number") {
-          return direction === "asc" ? aValue - bValue : bValue - aValue;
-        }
-
-        // Compare strings case-insensitively
-        if (typeof aValue === "string" && typeof bValue === "string") {
-          return direction === "asc"
-            ? aValue.localeCompare(bValue, undefined, { sensitivity: "base" })
-            : bValue.localeCompare(aValue, undefined, { sensitivity: "base" });
-        }
-
-        return 0;
+      // Compare dates
+      if (
+        column === "last_called_at" ||
+        column === "created_at" ||
+        column === "updated_at"
+      ) {
+        const aDate = new Date(aValue as string).getTime();
+        const bDate = new Date(bValue as string).getTime();
+        return direction === "asc" ? aDate - bDate : bDate - aDate;
       }
+
+      // Compare numbers
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return direction === "asc" ? aValue - bValue : bValue - aValue;
+      }
+
+      // Compare strings case-insensitively
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return direction === "asc"
+          ? aValue.localeCompare(bValue, undefined, { sensitivity: "base" })
+          : bValue.localeCompare(aValue, undefined, { sensitivity: "base" });
+      }
+
       return 0;
+    });
+  };
+
+  const handleSort = (column: keyof Lead) => {
+    setSortState(prev => {
+      if (prev.column !== column) {
+        return { column, direction: "asc" };
+      }
+      if (prev.direction === "asc") {
+        return { column, direction: "desc" };
+      }
+      if (prev.direction === "desc") {
+        return { column: null, direction: null };
+      }
+      return { column, direction: "asc" };
     });
   };
 
@@ -746,7 +573,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
     processedLeads = getSortedLeads(processedLeads);
 
     setLeads(processedLeads);
-  }, [rawLeads, sortConfig, filterConfig]);
+  }, [rawLeads, sortState, filterConfig]);
 
   useEffect(() => {
     fetchLeads();
@@ -783,7 +610,6 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
             value={lead[field] as string}
             onChange={(e) => handleInputChange(e, lead.id, field)}
             onBlur={(e) => handleInputBlur(lead.id, field, e.target.value)}
-            onKeyDown={(e) => handleKeyDown(e, lead.id, field, lead[field] as string)}
             className="w-full h-full p-0 border-none focus:ring-0"
             autoFocus
           />
@@ -811,56 +637,29 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
           <Checkbox
             checked={leads.length > 0 && selectedLeads.length === leads.length}
             onCheckedChange={toggleAll}
-            disabled={leads.length === 0}
+            aria-label="Select all"
           />
         </TableHead>
-        {Object.entries(FIELD_MAPPINGS).map(([key]) => {
-          const currentConfig = Array.isArray(sortConfig) ? sortConfig : [];
-          const sortCriterion = currentConfig.find((c) => c.column === key);
-          const filterCriterion = filterConfig.find((c) => c.column === key);
-
-          return (
-            <TableHead
-              key={key}
-              className={`${
-                key === "call_attempts" ? "text-center" : ""
-              } cursor-pointer select-none text-muted-foreground`}
-            >
-              <HeaderMenu
-                column={key}
-                label={FIELD_MAPPINGS[key as keyof typeof FIELD_MAPPINGS]}
-                sortCriterion={sortCriterion}
-                filterCriterion={filterCriterion}
-                sortConfig={sortConfig}
-                onSortChange={(direction) => {
-                  const newConfig = [...sortConfig];
-                  if (direction === "none") {
-                    setSortConfig(newConfig.filter((c) => c.column !== key));
-                  } else {
-                    const filteredConfig = newConfig.filter(
-                      (c) => c.column !== key
-                    );
-                    filteredConfig.push({ column: key, direction });
-                    setSortConfig(filteredConfig);
-                  }
-                }}
-                onFilterChange={(value, type) => {
-                  const newConfig = filterConfig.filter(
-                    (c) => c.column !== key
-                  );
-                  if (value) {
-                    newConfig.push({ column: key, value, type });
-                  }
-                  setFilterConfig(newConfig);
-                }}
-                onFilterRemove={() => {
-                  setFilterConfig(filterConfig.filter((c) => c.column !== key));
-                }}
-                isEnum={key === "status"}
-              />
-            </TableHead>
-          );
-        })}
+        {Object.entries(FIELD_MAPPINGS).map(([field, label]) => (
+          <TableHead
+            key={field}
+            className="cursor-pointer select-none relative whitespace-nowrap"
+            onClick={() => handleSort(field as keyof Lead)}
+          >
+            <div className="flex items-center">
+              <span>{label}</span>
+              {sortState.column === field && (
+                <span className="ml-1 inline-flex">
+                  {sortState.direction === "asc" ? (
+                    <ArrowUp className="h-4 w-4" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4" />
+                  )}
+                </span>
+              )}
+            </div>
+          </TableHead>
+        ))}
       </TableRow>
     </TableHeader>
   );
@@ -991,11 +790,9 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Button onClick={() => setIsAddingLead(true)}>
-            <PlusCircle className="w-4 h-4 mr-2" />
             Add Lead
           </Button>
           <Button onClick={() => fileInputRef.current?.click()}>
-            <Upload className="w-4 h-4 mr-2" />
             Import CSV
           </Button>
           <input
