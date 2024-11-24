@@ -49,7 +49,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
-import { Lead } from "@/types/leads";
+import { Lead } from "@/lib/supabase";
 import {
   type SortDirection,
   type SortCriterion,
@@ -62,13 +62,8 @@ import {
 } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-
-const statusStyles = {
-  pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80",
-  scheduled: "bg-green-100 text-green-800 hover:bg-green-100/80",
-  no_answer: "bg-gray-100 text-gray-800 hover:bg-gray-100/80",
-  not_interested: "bg-red-100 text-red-800 hover:bg-red-100/80",
-};
+import { leadsService } from "@/lib/services/leads";
+import { OutboundCallControl } from "./outbound-call-control";
 
 // First, let's define a mapping of display fields to database fields
 const FIELD_MAPPINGS = {
@@ -328,54 +323,73 @@ export function LeadTable() {
   const [filterConfig, setFilterConfig] = useState<FilterCriterion[]>([]);
   const [rawLeads, setRawLeads] = useState<Lead[]>([]);
 
-  // Load sort config from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem("leadsTableSort");
-    try {
-      const parsed = stored ? JSON.parse(stored) : [];
-      setSortConfig(Array.isArray(parsed) ? parsed : []);
-    } catch {
-      setSortConfig([]);
-    }
-  }, []);
-
-  // Focus input when editing cell
-  useEffect(() => {
-    if (editingCell && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [editingCell]);
-
-  // Process leads when sort or filter config changes
-  useEffect(() => {
-    if (rawLeads.length > 0) {
-      const processedLeads = getFilteredAndSortedLeads(rawLeads);
-      setLeads(processedLeads);
-    }
-  }, [sortConfig, filterConfig, rawLeads]);
-
-  // Initial fetch of leads
-  useEffect(() => {
-    fetchLeads();
-  }, []);
-
   const fetchLeads = async () => {
-    try {
-      const response = await fetch('/api/leads');
-      if (!response.ok) {
-        throw new Error('Failed to fetch leads');
-      }
-      const data = await response.json();
-      setRawLeads(data);
-      const processedLeads = getFilteredAndSortedLeads(data);
-      setLeads(processedLeads);
-    } catch (error) {
+    const { data, error } = await leadsService.getLeads();
+    if (error) {
+      console.error("Error fetching leads:", error);
       toast({
-        title: "Error fetching leads",
-        description: error instanceof Error ? error.message : 'An error occurred',
+        title: "Error",
+        description: "Failed to fetch leads. Please try again.",
         variant: "destructive",
       });
+      return;
     }
+    if (data) {
+      setRawLeads(data);
+    }
+  };
+
+  const handleUpdateLead = async (id: string, updates: Partial<Lead>) => {
+    const { success, error } = await leadsService.updateLead(id, updates);
+    if (!success) {
+      console.error("Error updating lead:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update lead. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const handleDeleteLeads = async () => {
+    const results = await Promise.all(
+      selectedLeads.map((id) => leadsService.deleteLead(id))
+    );
+
+    const errors = results.filter((r) => !r.success);
+    if (errors.length > 0) {
+      console.error("Error deleting leads:", errors);
+      toast({
+        title: "Error",
+        description: `Failed to delete ${errors.length} leads. Please try again.`,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: `Successfully deleted ${selectedLeads.length} leads.`,
+      });
+    }
+
+    setIsDeleteDialogOpen(false);
+    setSelectedLeads([]);
+    fetchLeads();
+  };
+
+  const handleCreateLead = async (lead: Omit<Lead, "id" | "created_at" | "updated_at">) => {
+    const { data, error } = await leadsService.createLead(lead);
+    if (error) {
+      console.error("Error creating lead:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create lead. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
   };
 
   const toggleAll = () => {
@@ -397,36 +411,6 @@ export function LeadTable() {
   const formatDate = (date: string | null) => {
     if (!date) return "N/A";
     return formatDateTime(date);
-  };
-
-  const handleDeleteLeads = async () => {
-    try {
-      const response = await fetch('/api/leads', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ids: selectedLeads }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete leads');
-      }
-
-      setSelectedLeads([]);
-      setIsDeleteDialogOpen(false);
-      await fetchLeads();
-      toast({
-        title: "Leads deleted",
-        description: "Selected leads have been deleted successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error deleting leads",
-        description: error instanceof Error ? error.message : 'An error occurred',
-        variant: "destructive",
-      });
-    }
   };
 
   const handleCellClick = (id: string, field: keyof Lead) => {
@@ -457,24 +441,16 @@ export function LeadTable() {
     value: string
   ) => {
     try {
-      const response = await fetch(`/api/leads/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ [field]: value }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update lead');
+      const response = await handleUpdateLead(id, { [field]: value });
+      if (!response) {
+        throw new Error("Failed to update lead");
       }
-
       setEditingCell(null);
-      await fetchLeads();
+      fetchLeads();
     } catch (error) {
       toast({
         title: "Error updating lead",
-        description: error instanceof Error ? error.message : 'An error occurred',
+        description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     }
@@ -482,18 +458,10 @@ export function LeadTable() {
 
   const handleStatusChange = async (value: Lead["status"], id: string) => {
     try {
-      const response = await fetch(`/api/leads/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: value }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update status');
+      const response = await handleUpdateLead(id, { status: value });
+      if (!response) {
+        throw new Error("Failed to update status");
       }
-
       const updatedLeads = leads.map((lead) =>
         lead.id === id ? { ...lead, status: value } : lead
       );
@@ -502,7 +470,7 @@ export function LeadTable() {
     } catch (error) {
       toast({
         title: "Error updating status",
-        description: error instanceof Error ? error.message : 'An error occurred',
+        description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     }
@@ -530,18 +498,10 @@ export function LeadTable() {
     };
 
     try {
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newLeadData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to add lead');
+      const response = await handleCreateLead(newLeadData);
+      if (!response) {
+        throw new Error("Failed to add lead");
       }
-
       setNewLead({});
       setIsAddingLead(false);
       await fetchLeads();
@@ -552,7 +512,7 @@ export function LeadTable() {
     } catch (error) {
       toast({
         title: "Error adding lead",
-        description: error instanceof Error ? error.message : 'An error occurred',
+        description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     }
@@ -663,29 +623,32 @@ export function LeadTable() {
     }));
 
     try {
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newLeads),
-      });
+      const response = await Promise.all(
+        newLeads.map((lead) => leadsService.createLead(lead))
+      );
 
-      if (!response.ok) {
-        throw new Error('Failed to import leads');
+      const errors = response.filter((r) => !r.success);
+      if (errors.length > 0) {
+        console.error("Error importing leads:", errors);
+        toast({
+          title: "Error",
+          description: `Failed to import ${errors.length} leads. Please try again.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "CSV imported",
+          description: `${data.length} lead(s) have been imported successfully.`,
+        });
       }
 
       await fetchLeads();
       setShowCSVPreview(false);
       setCSVPreviewData([]);
-      toast({
-        title: "CSV imported",
-        description: `${data.length} lead(s) have been imported successfully.`,
-      });
     } catch (error) {
       toast({
         title: "Error importing leads",
-        description: error instanceof Error ? error.message : 'An error occurred',
+        description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     }
@@ -846,20 +809,12 @@ export function LeadTable() {
                   const newConfig = [...sortConfig];
                   if (direction === "none") {
                     setSortConfig(newConfig.filter((c) => c.column !== key));
-                    localStorage.setItem(
-                      "leadsTableSort",
-                      JSON.stringify(newConfig.filter((c) => c.column !== key))
-                    );
                   } else {
                     const filteredConfig = newConfig.filter(
                       (c) => c.column !== key
                     );
                     filteredConfig.push({ column: key, direction });
                     setSortConfig(filteredConfig);
-                    localStorage.setItem(
-                      "leadsTableSort",
-                      JSON.stringify(filteredConfig)
-                    );
                   }
                 }}
                 onFilterChange={(value, type) => {
@@ -926,6 +881,7 @@ export function LeadTable() {
 
   return (
     <div className="space-y-4">
+      <OutboundCallControl />
       <div className="flex justify-between items-center">
         <div className="space-x-2 flex items-center">
           <Button

@@ -50,14 +50,15 @@ create table settings (
 );
 
 -- Create trigger for settings updated_at
-create trigger update_settings_updated_at
-  before update on settings
-  for each row
+create trigger update_settings_updated_at 
+  before update on settings 
+  for each row 
   execute function update_updated_at_column();
 
--- Insert default settings
+-- Insert default settings record
 insert into settings (automation_enabled, max_calls_batch, retry_interval, max_attempts)
-values (false, 5, 4, 3);
+values (false, 5, 4, 3)
+on conflict (id) do nothing;
 
 -- Create appointments table
 create table appointments (
