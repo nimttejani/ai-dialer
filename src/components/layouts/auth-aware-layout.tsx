@@ -3,8 +3,17 @@
 import { DashboardLayout } from "./dashboard-layout";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { Spinner } from "@/components/ui/spinner";
+
+function LoadingScreen() {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-2">
+      <Spinner className="h-8 w-8" />
+      <p className="text-sm text-muted-foreground">Loading...</p>
+    </div>
+  );
+}
 
 export function AuthAwareLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -32,22 +41,7 @@ export function AuthAwareLayout({ children }: { children: React.ReactNode }) {
   }, [supabase.auth, pathname, router]);
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="space-y-4 w-[600px]">
-          <Skeleton className="h-12 w-full" />
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-[90%]" />
-            <Skeleton className="h-4 w-[80%]" />
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   // Only show login page content when on login page
@@ -57,18 +51,7 @@ export function AuthAwareLayout({ children }: { children: React.ReactNode }) {
 
   // Require authentication for all other pages
   if (!authenticated) {
-    // Return loading state while redirect happens
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="space-y-4 w-[600px]">
-          <Skeleton className="h-12 w-full" />
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-[90%]" />
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return <DashboardLayout>{children}</DashboardLayout>;
