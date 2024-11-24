@@ -75,6 +75,17 @@ const FIELD_MAPPINGS = {
   last_called_at: "Last Called At",
 } as const;
 
+// Add status styles mapping
+const statusStyles = {
+  pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
+  contacted: "bg-blue-100 text-blue-800 hover:bg-blue-200",
+  qualified: "bg-green-100 text-green-800 hover:bg-green-200",
+  unqualified: "bg-red-100 text-red-800 hover:bg-red-200",
+  callback_scheduled: "bg-purple-100 text-purple-800 hover:bg-purple-200",
+  converted: "bg-emerald-100 text-emerald-800 hover:bg-emerald-200",
+  not_interested: "bg-gray-100 text-gray-800 hover:bg-gray-200",
+} as const;
+
 // Add these new interfaces and type
 interface CSVPreviewData {
   company_name: string;
@@ -700,32 +711,35 @@ export function LeadTable() {
     });
   };
 
-  const getFilteredAndSortedLeads = (leadsToProcess: Lead[]): Lead[] => {
-    // Create a copy of the original leads
-    let processedLeads = [...leadsToProcess];
+  useEffect(() => {
+    let processedLeads = [...rawLeads];
 
-    // Apply filters if there are any
+    // Apply filters
     if (filterConfig.length > 0) {
       processedLeads = processedLeads.filter((lead) => {
         return filterConfig.every((filter) => {
           const value = lead[filter.column as keyof Lead];
           if (value === null) return false;
-
+          
           const stringValue = String(value).toLowerCase();
           const filterValue = filter.value.toLowerCase();
-
-          if (filter.type === "contains") {
-            return stringValue.includes(filterValue);
-          } else {
-            return stringValue === filterValue;
-          }
+          
+          return filter.type === "contains"
+            ? stringValue.includes(filterValue)
+            : stringValue === filterValue;
         });
       });
     }
 
-    // Then apply sorting
-    return getSortedLeads(processedLeads);
-  };
+    // Apply sorting
+    processedLeads = getSortedLeads(processedLeads);
+
+    setLeads(processedLeads);
+  }, [rawLeads, sortConfig, filterConfig]);
+
+  useEffect(() => {
+    fetchLeads();
+  }, []);
 
   const renderCell = (lead: Lead, field: keyof Lead) => {
     const isEditing =
