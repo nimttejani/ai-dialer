@@ -100,6 +100,10 @@ interface CSVDialogProps {
   open: boolean;
 }
 
+interface LeadTableProps {
+  initialLeads: Lead[];
+}
+
 // Add this new component for the CSV preview dialog
 function CSVPreviewDialog({
   previewData,
@@ -315,8 +319,8 @@ function HeaderMenu({
   );
 }
 
-export function LeadTable() {
-  const [leads, setLeads] = useState<Lead[]>([]);
+export function LeadTable({ initialLeads }: LeadTableProps) {
+  const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingCell, setEditingCell] = useState<{
@@ -332,7 +336,7 @@ export function LeadTable() {
   const [showCSVPreview, setShowCSVPreview] = useState(false);
   const [sortConfig, setSortConfig] = useState<SortConfig>([]);
   const [filterConfig, setFilterConfig] = useState<FilterCriterion[]>([]);
-  const [rawLeads, setRawLeads] = useState<Lead[]>([]);
+  const [rawLeads, setRawLeads] = useState<Lead[]>(initialLeads);
 
   const fetchLeads = async () => {
     const { data, error } = await leadsService.getLeads();

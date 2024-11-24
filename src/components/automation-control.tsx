@@ -3,91 +3,59 @@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { settingsService } from "@/lib/services/settings";
 import { useToast } from "@/hooks/use-toast";
+import type { AutomationSettings } from "@/lib/services/settings";
 
-interface AutomationSettings {
-  automation_enabled: boolean;
-  max_calls_batch: number;
-  retry_interval: number;
-  max_attempts: number;
+interface AutomationControlProps {
+  initialSettings: AutomationSettings | null;
 }
 
-export function AutomationControl() {
-  const [isAutomationEnabled, setIsAutomationEnabled] = useState(false);
+export function AutomationControl({ initialSettings }: AutomationControlProps) {
+  const [isAutomationEnabled, setIsAutomationEnabled] = useState(initialSettings?.automation_enabled ?? false);
   const [nextRunTime, setNextRunTime] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-
-  // Fetch automation settings
-  useEffect(() => {
-    async function fetchSettings() {
-      try {
-        const { data, error } = await supabase
-          .from("settings")
-          .select("*")
-          .single();
-
-        if (error) throw error;
-        setIsAutomationEnabled(data.automation_enabled);
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error fetching automation settings:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch automation settings",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-      }
-    }
-
-    fetchSettings();
-  }, [toast]);
 
   // Update next run time
   useEffect(() => {
     const updateNextRunTime = () => {
       const now = new Date();
-      const minutesToNext = 5 - (now.getMinutes() % 5);
-      const nextRun = new Date(now.getTime() + minutesToNext * 60000);
-      nextRun.setSeconds(0);
-      setNextRunTime(nextRun.toLocaleTimeString());
+      if (isAutomationEnabled) {
+        const nextRun = new Date(now.getTime() + (initialSettings?.retry_interval ?? 300) * 1000);
+        setNextRunTime(nextRun.toLocaleTimeString());
+      } else {
+        setNextRunTime("");
+      }
     };
 
     updateNextRunTime();
-    const interval = setInterval(updateNextRunTime, 60000);
+    const interval = setInterval(updateNextRunTime, 1000);
+
     return () => clearInterval(interval);
-  }, []);
+  }, [isAutomationEnabled, initialSettings?.retry_interval]);
 
   const handleToggle = async () => {
     try {
-      const newState = !isAutomationEnabled;
-      const { error } = await supabase
-        .from("settings")
-        .update({ automation_enabled: newState })
-        .eq("id", (await supabase.from("settings").select("id").single()).data?.id);
+      const { success, error } = await settingsService.updateAutomationEnabled(!isAutomationEnabled);
+      
+      if (!success) {
+        throw new Error(error);
+      }
 
-      if (error) throw error;
-
-      setIsAutomationEnabled(newState);
+      setIsAutomationEnabled(!isAutomationEnabled);
       toast({
         title: "Success",
-        description: `Automation ${newState ? "enabled" : "disabled"}`,
+        description: `Automation ${!isAutomationEnabled ? "enabled" : "disabled"}`,
       });
     } catch (error) {
-      console.error("Error updating automation settings:", error);
+      console.error("Error toggling automation:", error);
       toast({
         title: "Error",
-        description: "Failed to update automation settings",
+        description: "Failed to toggle automation",
         variant: "destructive",
       });
     }
   };
-
-  if (isLoading) {
-    return <div className="flex items-center space-x-4 mb-8">Loading...</div>;
-  }
 
   return (
     <div className="flex items-center space-x-4 mb-8">
@@ -96,12 +64,11 @@ export function AutomationControl() {
         checked={isAutomationEnabled}
         onCheckedChange={handleToggle}
       />
-      <Label htmlFor="automation" className="text-base">
-        Automation is {isAutomationEnabled ? "enabled" : "disabled"}
+      <Label htmlFor="automation">
+        {isAutomationEnabled
+          ? `Automation enabled (next run at ${nextRunTime})`
+          : "Automation disabled"}
       </Label>
-      {isAutomationEnabled && nextRunTime && (
-        <span className="text-muted-foreground">Next run: {nextRunTime}</span>
-      )}
     </div>
   );
 }
