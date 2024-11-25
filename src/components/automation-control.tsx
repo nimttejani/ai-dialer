@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Switch } from '@/components/ui/switch'
 import { settingsService } from '@/lib/services/settings'
 import { useToast } from '@/hooks/use-toast'
 import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingSwitch } from '@/components/ui/loading-switch'
 
 // Define the type for AutomationSettings
 type AutomationSettings = {
@@ -20,50 +20,62 @@ export function AutomationControl({
   onSettingsUpdate?: (enabled: boolean) => void;
 }) {
   const [enabled, setEnabled] = useState(initialSettings?.automation_enabled || false)
-  const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [isUpdating, setIsUpdating] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
     const fetchSettings = async () => {
       const settings = await settingsService.getAutomationSettings()
       setEnabled(settings.automation_enabled)
-      setLoading(false)
+      setInitialLoading(false)
     }
 
     if (!initialSettings) {
       fetchSettings()
     } else {
-      setLoading(false)
+      setInitialLoading(false)
     }
   }, [initialSettings])
 
   const handleToggle = async (newState: boolean) => {
-    setLoading(true)
-    const result = await settingsService.updateAutomationEnabled(newState)
+    setIsUpdating(true)
     
-    if (result.success) {
-      setEnabled(newState)
-      if (onSettingsUpdate) {
-        onSettingsUpdate(newState)
+    try {
+      const result = await settingsService.updateAutomationEnabled(newState)
+      
+      if (result.success) {
+        setEnabled(newState)
+        if (onSettingsUpdate) {
+          onSettingsUpdate(newState)
+        }
+        toast({
+          title: newState ? "Outbound Calling Enabled" : "Outbound Calling Disabled",
+          description: newState 
+            ? "System is now making calls to leads" 
+            : "Outbound calling has been paused",
+          variant: "success",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: `Failed to update settings: ${result.error}`,
+          variant: "destructive",
+        })
       }
-      toast({
-        title: newState ? "Outbound Calling Enabled" : "Outbound Calling Disabled",
-        description: newState 
-          ? "System is now making calls to leads" 
-          : "Outbound calling has been paused",
-        variant: "success",
-      })
-    } else {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
       toast({
         title: "Error",
-        description: `Failed to update settings: ${result.error}`,
+        description: "Failed to update settings. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setIsUpdating(false)
     }
-    setLoading(false)
   }
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="flex items-center justify-between p-4 bg-card rounded-lg border shadow-sm mb-4">
         <div className="space-y-2">
@@ -87,13 +99,14 @@ export function AutomationControl({
         </p>
       </div>
       <div className="flex items-center space-x-2">
-        <Switch
+        <LoadingSwitch
           checked={enabled}
           onCheckedChange={handleToggle}
-          disabled={loading}
+          disabled={isUpdating}
+          isLoading={isUpdating}
           aria-label="Toggle outbound calling"
         />
-        <span className="text-sm font-medium">
+        <span className="text-sm font-medium min-w-[3rem]">
           {enabled ? 'Active' : 'Paused'}
         </span>
       </div>
