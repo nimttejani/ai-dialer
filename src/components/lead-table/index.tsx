@@ -13,7 +13,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Lead } from "@/lib/supabase";
@@ -28,6 +27,14 @@ import { useLeadSort } from "./hooks/use-lead-sort";
 import { useCSVImport } from "./hooks/use-csv-import";
 import { LeadTableProps, EditingCell } from "./types";
 import { FIELD_MAPPINGS, NON_EDITABLE_FIELDS } from "./constants";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function LeadTable({ initialLeads }: LeadTableProps) {
   const [rawLeads, setRawLeads] = useState<Lead[]>(initialLeads);
@@ -168,6 +175,34 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
     }
   };
 
+  const handleBulkStatusUpdate = async (status: Lead["status"]) => {
+    const { success, data, error } = await leadsService.updateLeadStatus(selectedLeads, status);
+
+    if (!success || error) {
+      console.error("Error updating leads:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update leads. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: `Successfully updated ${selectedLeads.length} leads to ${status}.`,
+        variant: "success",
+      });
+
+      // Update local state with the returned data
+      setRawLeads(prevLeads => 
+        prevLeads.map(lead => {
+          const updatedLead = data?.find(d => d.id === lead.id);
+          return updatedLead ? { ...lead, ...updatedLead } : lead;
+        })
+      );
+      setSelectedLeads([]);
+    }
+  };
+
   const toggleLead = (id: string) => {
     setSelectedLeads((prev) =>
       prev.includes(id)
@@ -265,60 +300,61 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div className="space-x-2 flex items-center">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleManualRefresh}
-            title="Refresh leads"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-          <Button onClick={() => setIsAddingLead(true)}>
-            Add Lead
-          </Button>
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex gap-2">
+          <input
+            type="file"
+            accept=".csv"
+            onChange={handleFileUpload}
+            className="hidden"
+            ref={fileInputRef}
+          />
           <Button onClick={() => fileInputRef.current?.click()}>
             Import CSV
           </Button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            accept=".csv"
-            onChange={handleFileUpload}
-          />
+          <Button variant="outline" onClick={handleManualRefresh}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" onClick={() => setIsAddingLead(true)}>
+            Add Lead
+          </Button>
         </div>
         {selectedLeads.length > 0 && (
-          <AlertDialog
-            open={isDeleteDialogOpen}
-            onOpenChange={setIsDeleteDialogOpen}
-          >
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setIsDeleteDialogOpen(true)}
-              >
-                Delete Selected
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete{" "}
-                  {selectedLeads.length} selected lead(s).
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteLeads}>
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  Bulk Actions
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>Update Status</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleBulkStatusUpdate("pending")}>
+                  Set to Pending
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkStatusUpdate("calling")}>
+                  Set to Calling
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkStatusUpdate("no_answer")}>
+                  Set to No Answer
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkStatusUpdate("scheduled")}>
+                  Set to Scheduled
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkStatusUpdate("not_interested")}>
+                  Set to Not Interested
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  className="text-red-600"
+                >
+                  Delete Selected
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )}
       </div>
 
@@ -370,6 +406,27 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
         onCancel={() => setShowCSVPreview(false)}
         open={showCSVPreview}
       />
+
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete{" "}
+              {selectedLeads.length} selected lead(s).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteLeads}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

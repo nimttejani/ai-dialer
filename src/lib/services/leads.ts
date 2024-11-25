@@ -51,5 +51,19 @@ export const leadsService = {
       .insert(leads)
 
     return { success: !error, error }
-  }
+  },
+
+  async updateLeadStatus(ids: string[], status: Lead['status']) {
+    const { data, error } = await supabase
+      .from('leads')
+      .update({ status, updated_at: new Date().toISOString() })
+      .in('id', ids)
+      .select();
+
+    return {
+      success: !error && !!data,
+      data,
+      error,
+    };
+  },
 }
