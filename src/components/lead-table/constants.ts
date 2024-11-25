@@ -8,11 +8,11 @@ export const FIELD_MAPPINGS = {
 } as const;
 
 export const STATUS_STYLES = {
-  pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
-  calling: "bg-blue-100 text-blue-800 hover:bg-blue-200",
+  pending: "bg-blue-100 text-blue-800 hover:bg-blue-200",
+  calling: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
   no_answer: "bg-orange-100 text-orange-800 hover:bg-orange-200",
-  scheduled: "bg-purple-100 text-purple-800 hover:bg-purple-200",
-  not_interested: "bg-gray-100 text-gray-800 hover:bg-gray-200"
+  scheduled: "bg-green-100 text-green-800 hover:bg-green-200",
+  not_interested: "bg-red-100 text-red-800 hover:bg-red-200"
 } as const;
 
 export const NON_EDITABLE_FIELDS = ["call_attempts", "last_called_at", "created_at", "updated_at"];
