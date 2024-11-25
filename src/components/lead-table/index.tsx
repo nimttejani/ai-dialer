@@ -309,14 +309,14 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
             className="hidden"
             ref={fileInputRef}
           />
-          <Button onClick={() => fileInputRef.current?.click()}>
-            Import CSV
-          </Button>
           <Button variant="outline" onClick={handleManualRefresh}>
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button variant="outline" onClick={() => setIsAddingLead(true)}>
+          <Button onClick={() => setIsAddingLead(true)}>
             Add Lead
+          </Button>
+          <Button onClick={() => fileInputRef.current?.click()}>
+            Import CSV
           </Button>
         </div>
         {selectedLeads.length > 0 && (
