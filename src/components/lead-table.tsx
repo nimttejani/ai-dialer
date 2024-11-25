@@ -148,7 +148,11 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [csvPreviewData, setCSVPreviewData] = useState<CSVPreviewData[]>([]);
   const [showCSVPreview, setShowCSVPreview] = useState(false);
-  const [sortState, setSortState] = useState<SortState>({ column: null, direction: null });
+  const [sortState, setSortState] = useState<SortState>(() => {
+    if (typeof window === 'undefined') return { column: null, direction: null };
+    const savedSort = localStorage.getItem('leadTableSort');
+    return savedSort ? JSON.parse(savedSort) : { column: null, direction: null };
+  });
   const [filterConfig, setFilterConfig] = useState<FilterCriterion[]>([]);
   const [rawLeads, setRawLeads] = useState<Lead[]>(initialLeads);
 
@@ -551,16 +555,21 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
 
   const handleSort = (column: keyof Lead) => {
     setSortState(prev => {
-      if (prev.column !== column) {
-        return { column, direction: "asc" };
-      }
-      if (prev.direction === "asc") {
-        return { column, direction: "desc" };
-      }
-      if (prev.direction === "desc") {
-        return { column: null, direction: null };
-      }
-      return { column, direction: "asc" };
+      const newState = (() => {
+        if (prev.column !== column) {
+          return { column, direction: "asc" as const };
+        }
+        if (prev.direction === "asc") {
+          return { column, direction: "desc" as const };
+        }
+        if (prev.direction === "desc") {
+          return { column: null, direction: null };
+        }
+        return { column, direction: "asc" as const };
+      })();
+      
+      localStorage.setItem('leadTableSort', JSON.stringify(newState));
+      return newState;
     });
   };
 
