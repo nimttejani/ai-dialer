@@ -394,7 +394,12 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
           />
         </Table>
       </div>
-
+      {selectedLeads.length > 0 && (
+        <div className="bg-muted mt-4 p-2 rounded-md flex items-center justify-between">
+          <span className="text-sm font-medium">{selectedLeads.length} record{selectedLeads.length === 1 ? '' : 's'} selected</span>
+          <Button variant="ghost" size="sm" onClick={() => setSelectedLeads([])}>Clear selection</Button>
+        </div>
+      )}
       <LeadFormDialog
         open={isAddingLead}
         onOpenChange={setIsAddingLead}
