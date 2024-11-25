@@ -44,25 +44,20 @@ export function CellRenderer({
       return (
         <Select
           value={editValue}
-          onValueChange={(value) => {
-            onEdit(lead.id, field, value);
+          onValueChange={async (value) => {
+            await onEdit(lead.id, field, value);
+            setEditingCell(null);
           }}
           onOpenChange={(open) => {
             if (!open) {
-              // When dropdown closes, simulate an Enter key press
-              onKeyDown(
-                new KeyboardEvent('keydown', { key: 'Enter' }) as unknown as React.KeyboardEvent<HTMLInputElement>,
-                lead.id,
-                field,
-                editValue
-              );
+              setEditingCell(null);
             }
           }}
         >
           <SelectTrigger onKeyDown={(e) => {
             if (e.key === "Escape") {
               e.preventDefault();
-              (e.target as HTMLElement).blur();
+              setEditingCell(null);
             } else if (e.key === "Tab") {
               onKeyDown(e as unknown as React.KeyboardEvent<HTMLInputElement>, lead.id, field, editValue);
             }
