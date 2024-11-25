@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { Table } from "@/components/ui/table";
@@ -39,13 +39,14 @@ import {
 import { Pagination } from "./pagination";
 
 export function LeadTable({ initialLeads }: LeadTableProps) {
+  const isFirstRender = useRef(true);
   const [rawLeads, setRawLeads] = useState<Lead[]>(initialLeads);
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [isAddingLead, setIsAddingLead] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
+  const [totalRecords, setTotalRecords] = useState(initialLeads.length);
   const { toast } = useToast();
 
   // Initialize our custom hooks
@@ -55,6 +56,12 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
   const { pageSize, setPageSize } = usePageSize();
 
   const fetchLeads = async (showSuccessToast = false) => {
+    // Skip the initial fetch since we already have data
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
     try {
       const { data, error, count } = await leadsService.getLeads({
         sortBy: sortState.column ? {
@@ -97,15 +104,14 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
     }
   };
 
-  // Initial fetch
-  useEffect(() => {
-    fetchLeads(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
-
   // Fetch when pagination or sort changes
   useEffect(() => {
-    // Skip the initial fetch since we already do that in the mount effect
+    // Skip the initial fetch since we already have data
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
     const timeoutId = setTimeout(() => {
       fetchLeads(false);
     }, 100); // Add small debounce
