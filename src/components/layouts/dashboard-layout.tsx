@@ -1,17 +1,23 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useSidebarState } from "@/hooks/use-sidebar-state";
 import { Sidebar } from "@/components/sidebar";
 
 export const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { isSidebarOpen, toggleSidebar, isLoaded } = useSidebarState();
+
+  // Don't render until we've loaded the initial state from localStorage
+  // This prevents a flash of the default state
+  if (!isLoaded) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex">
       <Sidebar
         collapsed={!isSidebarOpen}
-        onToggleCollapse={() => setIsSidebarOpen(!isSidebarOpen)}
+        onToggleCollapse={toggleSidebar}
       />
       <main
         className={cn(
