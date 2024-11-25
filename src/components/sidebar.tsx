@@ -7,12 +7,12 @@ import { cn } from "@/lib/utils"
 import { ThemeToggle } from './theme-toggle'
 import { Button } from './ui/button'
 
-interface AppSidebarProps {
+interface SidebarProps {
   collapsed: boolean
   onToggleCollapse: () => void
 }
 
-export function AppSidebar({ collapsed, onToggleCollapse }: AppSidebarProps) {
+export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname()
 
   return (

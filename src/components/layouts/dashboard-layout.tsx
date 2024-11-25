@@ -2,14 +2,14 @@
 
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { AppSidebar } from "@/components/app-sidebar";
+import { Sidebar } from "@/components/sidebar";
 
 export const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
     <div className="min-h-screen flex">
-      <AppSidebar
+      <Sidebar
         collapsed={!isSidebarOpen}
         onToggleCollapse={() => setIsSidebarOpen(!isSidebarOpen)}
       />
