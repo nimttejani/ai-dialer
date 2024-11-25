@@ -84,8 +84,8 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
   };
 
   const handleUpdateLead = async (id: string, updates: Partial<Lead>) => {
-    const { success, error } = await leadsService.updateLead(id, updates);
-    if (!success) {
+    const { success, data, error } = await leadsService.updateLead(id, updates);
+    if (!success || !data) {
       console.error("Error updating lead:", error);
       toast({
         title: "Error",
@@ -94,6 +94,19 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
       });
       return false;
     }
+    
+    // Update the local state with the new data
+    setRawLeads(prevLeads => 
+      prevLeads.map(lead => lead.id === id ? {
+        ...lead,  // Keep existing properties
+        ...data,  // Update with new data
+        // Preserve any properties that might be undefined in the response
+        ...Object.fromEntries(
+          Object.entries(data).filter(([_, v]) => v !== undefined)
+        )
+      } : lead)
+    );
+    
     return true;
   };
 
@@ -173,46 +186,16 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
     field: keyof Lead,
     value: string
   ) => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      try {
-        const response = await handleUpdateLead(id, { [field]: value });
-        if (!response) {
-          throw new Error("Failed to update lead");
-        }
-        
-        // Move to next/previous cell after successful update
-        const editableFields = Object.keys(FIELD_MAPPINGS).filter(
-          (f) => !NON_EDITABLE_FIELDS.includes(f)
-        );
-        const currentLeadIndex = sortedLeads.findIndex((l) => l.id === id);
-        const currentFieldIndex = editableFields.indexOf(field);
-        const nextFieldIndex = e.shiftKey ? currentFieldIndex - 1 : currentFieldIndex + 1;
+    if (e.key === "Escape") {
+      setEditingCell(null);
+      return;
+    }
 
-        if (e.shiftKey) {
-          // Going backwards
-          if (nextFieldIndex >= 0) {
-            // Move to previous field in same row
-            setEditingCell({ id, field: editableFields[nextFieldIndex] as keyof Lead });
-          } else if (currentLeadIndex > 0) {
-            // Move to last field of previous row
-            setEditingCell({
-              id: sortedLeads[currentLeadIndex - 1].id,
-              field: editableFields[editableFields.length - 1] as keyof Lead
-            });
-          }
-        } else {
-          // Going forwards
-          if (nextFieldIndex < editableFields.length) {
-            // Move to next field in same row
-            setEditingCell({ id, field: editableFields[nextFieldIndex] as keyof Lead });
-          } else if (currentLeadIndex < sortedLeads.length - 1) {
-            // Move to first field of next row
-            setEditingCell({
-              id: sortedLeads[currentLeadIndex + 1].id,
-              field: editableFields[0] as keyof Lead
-            });
-          }
+    if (e.key === "Enter") {
+      try {
+        const success = await handleUpdateLead(id, { [field]: value });
+        if (success) {
+          setEditingCell(null);
         }
       } catch (error) {
         toast({
@@ -221,17 +204,58 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
           variant: "destructive",
         });
       }
-    } else if (e.key === 'Enter') {
+      return;
+    }
+
+    if (e.key === "Tab") {
       e.preventDefault();
       try {
-        const response = await handleUpdateLead(id, { [field]: value });
-        if (!response) {
-          throw new Error("Failed to update lead");
+        // Calculate next cell position
+        const editableFields = Object.keys(FIELD_MAPPINGS).filter(
+          (f) => !NON_EDITABLE_FIELDS.includes(f)
+        );
+        const currentLeadIndex = sortedLeads.findIndex((l) => l.id === id);
+        const currentFieldIndex = editableFields.indexOf(field);
+        const nextFieldIndex = e.shiftKey ? currentFieldIndex - 1 : currentFieldIndex + 1;
+
+        let nextCell: EditingCell | null = null;
+
+        if (e.shiftKey) {
+          // Going backwards
+          if (nextFieldIndex >= 0) {
+            // Move to previous field in same row
+            nextCell = { id, field: editableFields[nextFieldIndex] as keyof Lead };
+          } else if (currentLeadIndex > 0) {
+            // Move to last field of previous row
+            nextCell = {
+              id: sortedLeads[currentLeadIndex - 1].id,
+              field: editableFields[editableFields.length - 1] as keyof Lead
+            };
+          }
+        } else {
+          // Going forwards
+          if (nextFieldIndex < editableFields.length) {
+            // Move to next field in same row
+            nextCell = { id, field: editableFields[nextFieldIndex] as keyof Lead };
+          } else if (currentLeadIndex < sortedLeads.length - 1) {
+            // Move to first field of next row
+            nextCell = {
+              id: sortedLeads[currentLeadIndex + 1].id,
+              field: editableFields[0] as keyof Lead
+            };
+          }
         }
-        setEditingCell(null);
+
+        // If we have a next cell, move to it
+        if (nextCell) {
+          // Use requestAnimationFrame to ensure DOM updates are complete
+          requestAnimationFrame(() => {
+            setEditingCell(nextCell);
+          });
+        }
       } catch (error) {
         toast({
-          title: "Error updating lead",
+          title: "Error moving to next cell",
           description: error instanceof Error ? error.message : "An error occurred",
           variant: "destructive",
         });
@@ -318,7 +342,6 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
             onEdit={async (id, field, value) => {
               const success = await handleUpdateLead(id, { [field]: value });
               if (success) {
-                fetchLeads(false);
                 setEditingCell(null);
               }
             }}
@@ -330,6 +353,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
               }
             }}
             onKeyDown={handleKeyDown}
+            setEditingCell={setEditingCell}
           />
         </Table>
       </div>

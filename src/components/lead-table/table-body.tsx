@@ -22,6 +22,7 @@ interface TableBodyProps {
     field: keyof Lead,
     value: string
   ) => void;
+  setEditingCell: (editingCell: EditingCell | null) => void;
 }
 
 export function LeadTableBody({
@@ -32,6 +33,7 @@ export function LeadTableBody({
   onEdit,
   onStartEdit,
   onKeyDown,
+  setEditingCell,
 }: TableBodyProps) {
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
@@ -39,20 +41,13 @@ export function LeadTableBody({
     field: keyof Lead,
     value: string
   ) => {
-    if (e.key === "Enter" || e.key === "Escape") {
+    if (e.key === "Escape") {
       e.preventDefault();
-      if (e.key === "Enter") {
-        onEdit(id, field, value);
-      }
       onStartEdit(null, null);
+      return;
     }
 
-    // Let the parent component handle tab navigation
-    if (e.key === "Tab") {
-      onKeyDown(e, id, field, value);
-    }
-
-    // Call the passed onKeyDown prop for any other keys
+    // Let the parent component handle all other key navigation
     onKeyDown(e, id, field, value);
   };
 
@@ -85,12 +80,14 @@ export function LeadTableBody({
             >
               <div className="px-4 py-2 min-h-[2.5rem] flex items-center">
                 <CellRenderer
+                  key={field}
                   lead={lead}
                   field={field as keyof Lead}
                   editingCell={editingCell}
                   onEdit={onEdit}
                   onStartEdit={onStartEdit}
                   onKeyDown={(e) => handleKeyDown(e, lead.id, field as keyof Lead, String(lead[field as keyof Lead] ?? ''))}
+                  setEditingCell={setEditingCell}
                 />
               </div>
             </TableCell>

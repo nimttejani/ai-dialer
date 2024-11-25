@@ -15,13 +15,15 @@ export const leadsService = {
     return { data, error }
   },
 
-  async updateLead(id: string, updates: Partial<Lead>): Promise<{ success: boolean; error?: any }> {
-    const { error } = await supabase
+  async updateLead(id: string, updates: Partial<Lead>): Promise<{ success: boolean; data?: Lead | null; error?: any }> {
+    const { data, error } = await supabase
       .from('leads')
       .update(updates)
       .eq('id', id)
+      .select()
+      .single()
 
-    return { success: !error, error }
+    return { success: !error, data, error }
   },
 
   async deleteLead(id: string): Promise<{ success: boolean; error?: any }> {

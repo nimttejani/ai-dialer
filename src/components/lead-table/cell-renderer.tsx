@@ -14,6 +14,7 @@ interface CellRendererProps {
   onEdit: (id: string, field: keyof Lead, value: string) => void;
   onStartEdit: (id: string, field: keyof Lead) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>, id: string, field: keyof Lead, value: string) => void;
+  setEditingCell: (editingCell: EditingCell | null) => void;
 }
 
 export function CellRenderer({
@@ -23,6 +24,7 @@ export function CellRenderer({
   onEdit,
   onStartEdit,
   onKeyDown,
+  setEditingCell,
 }: CellRendererProps) {
   const [editValue, setEditValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -30,7 +32,10 @@ export function CellRenderer({
   useEffect(() => {
     if (editingCell?.id === lead.id && editingCell?.field === field) {
       setEditValue(String(lead[field] || ""));
-      inputRef.current?.focus();
+      // Add a small delay to ensure the input is rendered before focusing
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 0);
     }
   }, [editingCell, lead, field]);
 
@@ -80,8 +85,30 @@ export function CellRenderer({
         ref={inputRef}
         value={editValue}
         onChange={(e) => setEditValue(e.target.value)}
-        onKeyDown={(e) => onKeyDown(e, lead.id, field, editValue)}
-        onBlur={() => onEdit(lead.id, field, editValue)}
+        onKeyDown={async (e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            onKeyDown(e, lead.id, field, editValue);
+          } else if (e.key === "Enter" || e.key === "Tab") {
+            e.preventDefault();
+            // First save the value
+            await onEdit(lead.id, field, editValue);
+            // Only trigger navigation on Tab
+            if (e.key === "Tab") {
+              onKeyDown(e, lead.id, field, editValue);
+            } else {
+              // For Enter, just exit edit mode
+              setEditingCell(null);
+            }
+          }
+        }}
+        onBlur={async () => {
+          // Only save on blur if the value has changed
+          if (editValue !== String(lead[field] || "")) {
+            await onEdit(lead.id, field, editValue);
+          }
+          setEditingCell(null);
+        }}
         className="h-8"
       />
     );
