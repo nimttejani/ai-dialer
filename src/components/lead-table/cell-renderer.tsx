@@ -42,8 +42,26 @@ export function CellRenderer({
           onValueChange={(value) => {
             onEdit(lead.id, field, value);
           }}
+          onOpenChange={(open) => {
+            if (!open) {
+              // When dropdown closes, simulate an Enter key press
+              onKeyDown(
+                new KeyboardEvent('keydown', { key: 'Enter' }) as unknown as React.KeyboardEvent<HTMLInputElement>,
+                lead.id,
+                field,
+                editValue
+              );
+            }
+          }}
         >
-          <SelectTrigger>
+          <SelectTrigger onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              (e.target as HTMLElement).blur();
+            } else if (e.key === "Tab") {
+              onKeyDown(e as unknown as React.KeyboardEvent<HTMLInputElement>, lead.id, field, editValue);
+            }
+          }}>
             <SelectValue placeholder="Select status" />
           </SelectTrigger>
           <SelectContent>
@@ -73,7 +91,10 @@ export function CellRenderer({
 
   if (field === "status" && typeof value === "string") {
     return (
-      <Badge className={STATUS_STYLES[value as keyof typeof STATUS_STYLES]}>
+      <Badge 
+        className={`${STATUS_STYLES[value as keyof typeof STATUS_STYLES]} cursor-pointer`}
+        onClick={() => onStartEdit(lead.id, field)}
+      >
         {value.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
       </Badge>
     );

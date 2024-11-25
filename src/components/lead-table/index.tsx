@@ -27,7 +27,7 @@ import { LeadTableBody } from "./table-body";
 import { useLeadSort } from "./hooks/use-lead-sort";
 import { useCSVImport } from "./hooks/use-csv-import";
 import { LeadTableProps, EditingCell } from "./types";
-import { FIELD_MAPPINGS } from "./constants";
+import { FIELD_MAPPINGS, NON_EDITABLE_FIELDS } from "./constants";
 
 export function LeadTable({ initialLeads }: LeadTableProps) {
   const [rawLeads, setRawLeads] = useState<Lead[]>(initialLeads);
@@ -167,60 +167,52 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
     setSelectedLeads(checked ? sortedLeads.map((lead) => lead.id) : []);
   };
 
-  const moveToNextCell = (currentId: string, currentField: keyof Lead, reverse: boolean = false) => {
-    const editableFields = Object.keys(FIELD_MAPPINGS).filter(
-      (field) => !["call_attempts", "last_called_at", "created_at", "updated_at"].includes(field)
-    ) as (keyof Lead)[];
-
-    const currentFieldIndex = editableFields.indexOf(currentField);
-    const currentLeadIndex = sortedLeads.findIndex((lead) => lead.id === currentId);
-
-    if (currentFieldIndex === -1 || currentLeadIndex === -1) return;
-
-    if (reverse) {
-      if (currentFieldIndex > 0) {
-        setEditingCell({
-          id: currentId,
-          field: editableFields[currentFieldIndex - 1]
-        });
-      } else if (currentLeadIndex > 0) {
-        setEditingCell({
-          id: sortedLeads[currentLeadIndex - 1].id,
-          field: editableFields[editableFields.length - 1]
-        });
-      }
-    } else {
-      if (currentFieldIndex < editableFields.length - 1) {
-        setEditingCell({
-          id: currentId,
-          field: editableFields[currentFieldIndex + 1]
-        });
-      } else if (currentLeadIndex < sortedLeads.length - 1) {
-        setEditingCell({
-          id: sortedLeads[currentLeadIndex + 1].id,
-          field: editableFields[0]
-        });
-      }
-    }
-  };
-
   const handleKeyDown = async (
     e: React.KeyboardEvent<HTMLInputElement>,
     id: string,
     field: keyof Lead,
     value: string
   ) => {
-    if (e.key === 'Enter' || e.key === 'Tab') {
+    if (e.key === 'Tab') {
       e.preventDefault();
       try {
         const response = await handleUpdateLead(id, { [field]: value });
         if (!response) {
           throw new Error("Failed to update lead");
         }
-        if (e.key === 'Tab') {
-          moveToNextCell(id, field, e.shiftKey);
+        
+        // Move to next/previous cell after successful update
+        const editableFields = Object.keys(FIELD_MAPPINGS).filter(
+          (f) => !NON_EDITABLE_FIELDS.includes(f)
+        );
+        const currentLeadIndex = sortedLeads.findIndex((l) => l.id === id);
+        const currentFieldIndex = editableFields.indexOf(field);
+        const nextFieldIndex = e.shiftKey ? currentFieldIndex - 1 : currentFieldIndex + 1;
+
+        if (e.shiftKey) {
+          // Going backwards
+          if (nextFieldIndex >= 0) {
+            // Move to previous field in same row
+            setEditingCell({ id, field: editableFields[nextFieldIndex] as keyof Lead });
+          } else if (currentLeadIndex > 0) {
+            // Move to last field of previous row
+            setEditingCell({
+              id: sortedLeads[currentLeadIndex - 1].id,
+              field: editableFields[editableFields.length - 1] as keyof Lead
+            });
+          }
         } else {
-          setEditingCell(null);
+          // Going forwards
+          if (nextFieldIndex < editableFields.length) {
+            // Move to next field in same row
+            setEditingCell({ id, field: editableFields[nextFieldIndex] as keyof Lead });
+          } else if (currentLeadIndex < sortedLeads.length - 1) {
+            // Move to first field of next row
+            setEditingCell({
+              id: sortedLeads[currentLeadIndex + 1].id,
+              field: editableFields[0] as keyof Lead
+            });
+          }
         }
       } catch (error) {
         toast({
@@ -228,7 +220,21 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
           description: error instanceof Error ? error.message : "An error occurred",
           variant: "destructive",
         });
-        fetchLeads(false);
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      try {
+        const response = await handleUpdateLead(id, { [field]: value });
+        if (!response) {
+          throw new Error("Failed to update lead");
+        }
+        setEditingCell(null);
+      } catch (error) {
+        toast({
+          title: "Error updating lead",
+          description: error instanceof Error ? error.message : "An error occurred",
+          variant: "destructive",
+        });
       }
     }
   };
@@ -316,7 +322,13 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
                 setEditingCell(null);
               }
             }}
-            onStartEdit={(id, field) => setEditingCell({ id, field })}
+            onStartEdit={(id, field) => {
+              if (id && field) {
+                setEditingCell({ id, field });
+              } else {
+                setEditingCell(null);
+              }
+            }}
             onKeyDown={handleKeyDown}
           />
         </Table>
