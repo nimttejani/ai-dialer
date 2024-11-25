@@ -25,7 +25,6 @@ import { LeadFormDialog } from "./lead-form-dialog";
 import { LeadTableHeader } from "./table-header";
 import { LeadTableBody } from "./table-body";
 import { useLeadSort } from "./hooks/use-lead-sort";
-import { useLeadFilter } from "./hooks/use-lead-filter";
 import { useCSVImport } from "./hooks/use-csv-import";
 import { LeadTableProps, EditingCell } from "./types";
 
@@ -39,7 +38,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
 
   // Initialize our custom hooks
   const { sortState, handleSort, getSortedLeads } = useLeadSort();
-  const { filterConfig, filteredLeads, addFilter, removeFilter } = useLeadFilter(rawLeads);
+  const sortedLeads = getSortedLeads(rawLeads);
   const {
     csvPreviewData,
     showCSVPreview,
@@ -161,7 +160,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
   };
 
   const handleSelectAll = (checked: boolean) => {
-    setSelectedLeads(checked ? filteredLeads.map((lead) => lead.id) : []);
+    setSelectedLeads(checked ? sortedLeads.map((lead) => lead.id) : []);
   };
 
   const moveToNextCell = (currentId: string, currentField: keyof Lead, reverse: boolean = false) => {
@@ -170,7 +169,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
     ) as (keyof Lead)[];
 
     const currentFieldIndex = editableFields.indexOf(currentField);
-    const currentLeadIndex = filteredLeads.findIndex((lead) => lead.id === currentId);
+    const currentLeadIndex = sortedLeads.findIndex((lead) => lead.id === currentId);
 
     if (currentFieldIndex === -1 || currentLeadIndex === -1) return;
 
@@ -182,7 +181,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
         });
       } else if (currentLeadIndex > 0) {
         setEditingCell({
-          id: filteredLeads[currentLeadIndex - 1].id,
+          id: sortedLeads[currentLeadIndex - 1].id,
           field: editableFields[editableFields.length - 1]
         });
       }
@@ -192,9 +191,9 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
           id: currentId,
           field: editableFields[currentFieldIndex + 1]
         });
-      } else if (currentLeadIndex < filteredLeads.length - 1) {
+      } else if (currentLeadIndex < sortedLeads.length - 1) {
         setEditingCell({
-          id: filteredLeads[currentLeadIndex + 1].id,
+          id: sortedLeads[currentLeadIndex + 1].id,
           field: editableFields[0]
         });
       }
@@ -229,9 +228,6 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
       }
     }
   };
-
-  // Apply sorting to filtered leads
-  const sortedLeads = getSortedLeads(filteredLeads);
 
   return (
     <div className="space-y-4">
