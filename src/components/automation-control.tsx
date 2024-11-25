@@ -11,8 +11,14 @@ type AutomationSettings = {
   automation_enabled: boolean;
 }
 
-// Update the component to accept initialSettings prop
-export function AutomationControl({ initialSettings }: { initialSettings: AutomationSettings | null }) {
+// Update the component to accept initialSettings and onSettingsUpdate props
+export function AutomationControl({ 
+  initialSettings,
+  onSettingsUpdate
+}: { 
+  initialSettings: AutomationSettings | null;
+  onSettingsUpdate?: (enabled: boolean) => void;
+}) {
   const [enabled, setEnabled] = useState(initialSettings?.automation_enabled || false)
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
@@ -24,7 +30,6 @@ export function AutomationControl({ initialSettings }: { initialSettings: Automa
       setLoading(false)
     }
 
-    // Only fetch settings if no initial settings were provided
     if (!initialSettings) {
       fetchSettings()
     } else {
@@ -38,6 +43,9 @@ export function AutomationControl({ initialSettings }: { initialSettings: Automa
     
     if (result.success) {
       setEnabled(newState)
+      if (onSettingsUpdate) {
+        onSettingsUpdate(newState)
+      }
       toast({
         title: newState ? "Outbound Calling Enabled" : "Outbound Calling Disabled",
         description: newState 
