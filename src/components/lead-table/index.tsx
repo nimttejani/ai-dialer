@@ -109,6 +109,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
         ...data,  // Update with new data
         // Preserve any properties that might be undefined in the response
         ...Object.fromEntries(
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           Object.entries(data).filter(([_, v]) => v !== undefined)
         )
       } : lead)
