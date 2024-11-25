@@ -2,12 +2,16 @@ import { supabase } from '../supabase'
 import type { Lead } from '../supabase'
 
 export const leadsService = {
-  async getLeads(): Promise<{ data: Lead[] | null; error: any }> {
-    const { data, error } = await supabase
+  async getLeads(sortBy?: { column: keyof Lead; ascending: boolean }): Promise<{ data: Lead[] | null; error: any }> {
+    let query = supabase
       .from('leads')
       .select('*')
-      .order('created_at', { ascending: false })
 
+    if (sortBy) {
+      query = query.order(sortBy.column, { ascending: sortBy.ascending })
+    }
+
+    const { data, error } = await query
     return { data, error }
   },
 

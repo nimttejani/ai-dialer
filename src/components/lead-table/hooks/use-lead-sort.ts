@@ -30,11 +30,15 @@ export function useLeadSort(initialSortState?: SortState) {
   };
 
   const getSortedLeads = (leadsToSort: Lead[]): Lead[] => {
+    // Always create a new array to maintain referential integrity
+    const leads = [...leadsToSort];
+    
+    // Apply default sort by id to maintain consistent order when no explicit sort
     if (!sortState.column || !sortState.direction) {
-      return leadsToSort;
+      return leads.sort((a, b) => a.id.localeCompare(b.id));
     }
 
-    return [...leadsToSort].sort((a, b) => {
+    return leads.sort((a, b) => {
       const column = sortState.column!;
       const direction = sortState.direction!;
       const aValue = a[column];
