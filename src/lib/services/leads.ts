@@ -11,32 +11,12 @@ export const leadsService = {
       pageSize?: number;
     } = {}
   ): Promise<{ data: Lead[] | null; error: any; count: number }> {
-    const { sortBy, page = 1, pageSize = 10 } = options;
+    const { sortBy, page, pageSize } = options;
     
     try {
-      // First, get the total count
-      const countQuery = await supabase
-        .from('leads')
-        .select('*', { count: 'exact', head: true });
-
-      if (countQuery.error) {
-        console.error('Error getting count:', countQuery.error);
-        return { 
-          data: null, 
-          error: { 
-            message: 'Failed to get total count',
-            details: countQuery.error 
-          }, 
-          count: 0 
-        };
-      }
-        
-      const totalCount = countQuery.count || 0;
-
-      // Then get the paginated data
       let query = supabase
         .from('leads')
-        .select('*');
+        .select('*', { count: 'exact' });
 
       // Only apply sorting if we have a valid column
       if (sortBy?.column) {
@@ -48,11 +28,14 @@ export const leadsService = {
         query = query.order('created_at', { ascending: false });
       }
 
-      // Apply pagination
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize - 1;
+      // Only apply pagination if both page and pageSize are provided
+      if (typeof page === 'number' && typeof pageSize === 'number') {
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+        query = query.range(from, to);
+      }
       
-      const { data, error } = await query.range(from, to);
+      const { data, error, count } = await query;
 
       if (error) {
         console.error('Error fetching leads:', error);
@@ -69,7 +52,7 @@ export const leadsService = {
       return {
         data,
         error: null,
-        count: totalCount,
+        count: count || 0,
       };
     } catch (error) {
       console.error('Unexpected error in getLeads:', error);
