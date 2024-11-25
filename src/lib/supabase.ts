@@ -13,7 +13,10 @@ export type Lead = {
 };
 
 // Create a singleton instance using Next.js auth helpers
-export const supabase = createClientComponentClient();
+export const supabase = createClientComponentClient({
+  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+});
 
 // Debug auth state
 supabase.auth.onAuthStateChange((event, session) => {

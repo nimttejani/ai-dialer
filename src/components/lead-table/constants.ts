@@ -16,3 +16,16 @@ export const STATUS_STYLES = {
 } as const;
 
 export const NON_EDITABLE_FIELDS = ["call_attempts", "last_called_at", "created_at", "updated_at"];
+
+// Local Storage Keys
+export const STORAGE_KEYS = {
+  PAGE_SIZE: 'leadTablePageSize',
+  SORT_STATE: 'leadTableSort',
+  SIDEBAR_COLLAPSED: 'sidebarCollapsed',
+} as const;
+
+// Default Values
+export const DEFAULTS = {
+  PAGE_SIZE: 10,
+  PAGE_SIZE_OPTIONS: [10, 20, 50, 100],
+} as const;

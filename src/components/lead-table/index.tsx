@@ -25,6 +25,7 @@ import { LeadTableHeader } from "./table-header";
 import { LeadTableBody } from "./table-body";
 import { useLeadSort } from "./hooks/use-lead-sort";
 import { useCSVImport } from "./hooks/use-csv-import";
+import { usePageSize } from "./hooks/use-page-size";
 import { LeadTableProps, EditingCell } from "./types";
 import { FIELD_MAPPINGS, NON_EDITABLE_FIELDS } from "./constants";
 import {
@@ -35,6 +36,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Pagination } from "./pagination";
 
 export function LeadTable({ initialLeads }: LeadTableProps) {
   const [rawLeads, setRawLeads] = useState<Lead[]>(initialLeads);
@@ -42,49 +44,75 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [isAddingLead, setIsAddingLead] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
   const { toast } = useToast();
 
   // Initialize our custom hooks
   const { sortState, handleSort, getSortedLeads } = useLeadSort();
   const sortedLeads = getSortedLeads(rawLeads);
-  const {
-    csvPreviewData,
-    showCSVPreview,
-    fileInputRef,
-    handleFileUpload,
-    handleCSVImport,
-    setShowCSVPreview,
-  } = useCSVImport(() => fetchLeads(false));
+  const { csvPreviewData, showCSVPreview, fileInputRef, handleFileUpload, handleCSVImport, setShowCSVPreview } = useCSVImport(() => fetchLeads(false));
+  const { pageSize, setPageSize } = usePageSize();
 
-  // Fetch leads on component mount
-  useEffect(() => {
-    fetchLeads(false);
-  }, []);
+  const fetchLeads = async (showSuccessToast = false) => {
+    try {
+      const { data, error, count } = await leadsService.getLeads({
+        sortBy: sortState.column ? {
+          column: sortState.column,
+          ascending: sortState.direction === 'asc'
+        } : undefined,
+        page: currentPage,
+        pageSize,
+      });
 
-  const fetchLeads = async (showToast = false) => {
-    const { data, error } = await leadsService.getLeads();
-    if (error) {
-      console.error("Error fetching leads:", error);
-      if (showToast) {
+      if (error) {
+        console.error("Error fetching leads:", error);
         toast({
-          title: "Error",
-          description: "Failed to fetch leads. Please try again.",
+          title: "Error fetching leads",
+          description: error.message || "An unexpected error occurred while fetching leads",
           variant: "destructive",
         });
+        return;
       }
-      return;
-    }
-    if (data) {
-      setRawLeads(data);
-      if (showToast) {
-        toast({
-          title: "Success",
-          description: "Leads refreshed successfully",
-          variant: "success",
-        });
+
+      if (data) {
+        setRawLeads(data);
+        setTotalRecords(count);
+
+        if (showSuccessToast) {
+          toast({
+            title: "Success",
+            description: "Leads refreshed successfully",
+            variant: "success",
+          });
+        }
       }
+    } catch (error) {
+      console.error("Unexpected error in fetchLeads:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while fetching leads",
+        variant: "destructive",
+      });
     }
   };
+
+  // Initial fetch
+  useEffect(() => {
+    fetchLeads(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
+
+  // Fetch when pagination or sort changes
+  useEffect(() => {
+    // Skip the initial fetch since we already do that in the mount effect
+    const timeoutId = setTimeout(() => {
+      fetchLeads(false);
+    }, 100); // Add small debounce
+
+    return () => clearTimeout(timeoutId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, pageSize, sortState]);
 
   const handleManualRefresh = () => {
     fetchLeads(true);
@@ -141,7 +169,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
 
     setIsDeleteDialogOpen(false);
     setSelectedLeads([]);
-    fetchLeads(false);
+    fetchLeads();
   };
 
   const handleAddLead = async (data: Partial<Lead>) => {
@@ -172,7 +200,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
         variant: "success",
       });
       setIsAddingLead(false);
-      fetchLeads(false);
+      fetchLeads();
     }
   };
 
@@ -359,7 +387,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
         )}
       </div>
 
-      <div className="border rounded-md">
+      <div className="rounded-md border">
         <Table>
           <LeadTableHeader
             onSelectAll={handleSelectAll}
@@ -394,6 +422,17 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
           />
         </Table>
       </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={Math.ceil(totalRecords / pageSize)}
+        pageSize={pageSize}
+        totalRecords={totalRecords}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setCurrentPage(1); // Reset to first page when changing page size
+        }}
+      />
       {selectedLeads.length > 0 && (
         <div className="bg-muted mt-4 p-2 rounded-md flex items-center justify-between">
           <span className="text-sm font-medium">{selectedLeads.length} record{selectedLeads.length === 1 ? '' : 's'} selected</span>
