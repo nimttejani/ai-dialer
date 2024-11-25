@@ -27,6 +27,7 @@ import { LeadTableBody } from "./table-body";
 import { useLeadSort } from "./hooks/use-lead-sort";
 import { useCSVImport } from "./hooks/use-csv-import";
 import { LeadTableProps, EditingCell } from "./types";
+import { FIELD_MAPPINGS } from "./constants";
 
 export function LeadTable({ initialLeads }: LeadTableProps) {
   const [rawLeads, setRawLeads] = useState<Lead[]>(initialLeads);
@@ -124,6 +125,9 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
 
   const handleAddLead = async (data: Partial<Lead>) => {
     const newLead = {
+      company_name: data.company_name || '',
+      phone: data.phone || '',
+      email: data.email || '',
       ...data,
       status: "pending" as const,
       call_attempts: 0,
