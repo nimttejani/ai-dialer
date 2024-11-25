@@ -626,6 +626,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
             value={lead[field] as string}
             onChange={(e) => handleInputChange(e, lead.id, field)}
             onBlur={(e) => handleInputBlur(lead.id, field, e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, lead.id, field, lead[field] as string)}
             className="w-full h-full p-0 border-none focus:ring-0"
             autoFocus
           />
