@@ -1,6 +1,8 @@
 import { supabase } from '../supabase'
 import type { Lead } from '../supabase'
 
+export type LeadStatus = "pending" | "calling" | "no_answer" | "scheduled" | "not_interested";
+
 export const leadsService = {
   async getLeads(sortBy?: { column: keyof Lead; ascending: boolean }): Promise<{ data: Lead[] | null; error: any }> {
     let query = supabase
