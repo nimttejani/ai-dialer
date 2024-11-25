@@ -323,8 +323,8 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
           <div className="flex gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  Bulk Actions
+                <Button variant="destructive">
+                  {selectedLeads.length === 1 ? 'Actions' : 'Bulk Actions'}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
