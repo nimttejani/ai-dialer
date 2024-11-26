@@ -3,7 +3,7 @@
 import { DashboardLayout } from "./dashboard-layout";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createBrowserClient } from "@supabase/ssr";
 import { Spinner } from "@/components/ui/spinner";
 
 function LoadingScreen() {
@@ -20,7 +20,10 @@ export function AuthAwareLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
-  const supabase = createClientComponentClient();
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   useEffect(() => {
     // First, check the initial session

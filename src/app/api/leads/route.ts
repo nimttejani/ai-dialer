@@ -1,4 +1,4 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { Database } from '@/lib/database.types'
@@ -7,8 +7,18 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 export async function GET() {
-  const cookieStore = await cookies()
-  const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
+  const cookieStore = cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+      },
+    }
+  )
 
   // Verify authentication
   const { data: { user } } = await supabase.auth.getUser()
@@ -29,8 +39,18 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies()
-  const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
+  const cookieStore = cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+      },
+    }
+  )
 
   // Verify authentication
   const { data: { user } } = await supabase.auth.getUser()
@@ -54,8 +74,18 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const cookieStore = await cookies()
-  const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
+  const cookieStore = cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+      },
+    }
+  )
 
   // Verify authentication
   const { data: { user } } = await supabase.auth.getUser()
