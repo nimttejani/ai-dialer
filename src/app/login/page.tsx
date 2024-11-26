@@ -1,6 +1,6 @@
 "use client";
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient, CookieOptions } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,23 @@ export default function LoginPage() {
   const { toast } = useToast();
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => {
+          const pairs = document.cookie.split("; ").map(pair => {
+            const [name, value] = pair.split("=");
+            return { name, value };
+          });
+          return pairs;
+        },
+        setAll: (cookiesList: { name: string; value: string; options?: CookieOptions }[]) => {
+          cookiesList.forEach(({ name, value, options }) => {
+            document.cookie = `${name}=${value}; path=/; ${options?.sameSite ? `SameSite=${options.sameSite}; ` : ""}${options?.secure ? "Secure; " : ""}${options?.httpOnly ? "HttpOnly; " : ""}`
+          });
+        }
+      }
+    }
   );
 
   const handleLogin = async (e: React.FormEvent) => {
