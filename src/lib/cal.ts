@@ -97,30 +97,36 @@ export async function createBooking(details: BookingDetails) {
     headers: {
       Authorization: `Bearer ${config.apiKey}`,
       'Content-Type': 'application/json',
+      'cal-api-version': '2024-08-13'
     },
     body: JSON.stringify({
-      eventTypeId: config.eventTypeId,
       start: details.startTime,
-      end: new Date(new Date(details.startTime).getTime() + config.eventDuration * 60000).toISOString(),
-      attendees: [
-        {
-          email: details.email,
-          name: details.name,
-          phone: details.phone,
-        }
-      ],
+      eventTypeId: config.eventTypeId,
+      attendee: {
+        name: details.name,
+        email: details.email,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      },
       metadata: {
         company: details.company,
         notes: details.notes || '',
+        phone: details.phone
       }
     }),
   });
 
   if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to create booking:', {
+      status: response.status,
+      statusText: response.statusText,
+      error: errorText,
+    });
     throw new Error(`Failed to create booking: ${response.statusText}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  return data.data;
 }
 
 export function formatAvailabilityForVAPI(availability: AvailabilityResponse): string {
