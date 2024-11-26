@@ -14,19 +14,33 @@ export async function middleware(req: NextRequest) {
     return res
   }
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser()
 
-  // If there's no session and the request is to an API route, return 401
-  if (!session && req.nextUrl.pathname.startsWith('/api/')) {
-    return NextResponse.json(
-      { error: 'Authentication required' },
-      { status: 401 }
-    )
+    // If there's no valid user and the request is to an API route, return 401
+    if ((!user || error) && req.nextUrl.pathname.startsWith('/api/')) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    if (error) {
+      console.error('Auth error:', error.message)
+    }
+
+    return res
+  } catch (e) {
+    console.error('Middleware error:', e)
+    // For API routes, return 500 on error
+    if (req.nextUrl.pathname.startsWith('/api/')) {
+      return NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      )
+    }
+    return res
   }
-
-  return res
 }
 
 export const config = {
