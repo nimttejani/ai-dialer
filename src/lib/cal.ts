@@ -30,9 +30,6 @@ const availabilityResponseSchema = z.object({
 });
 
 type Slot = z.infer<typeof slotSchema>;
-type AvailabilityResponse = {
-  slots: Slot[];
-};
 
 export type BookingDetails = {
   name: string;
@@ -43,88 +40,124 @@ export type BookingDetails = {
   startTime: string;
 };
 
+export type AvailabilityResponse = {
+  success: boolean;
+  availability?: {
+    slots: Slot[];
+  };
+  message?: string;
+  error?: string;
+};
+
+export type BookingResponse = {
+  success: boolean;
+  booking?: any;
+  message?: string;
+  error?: string;
+};
+
 export async function getAvailability(days: number = 5): Promise<AvailabilityResponse> {
-  const startTime = new Date().toISOString();
-  const endTime = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
-  
-  const params = new URLSearchParams({
-    startTime,
-    endTime,
-    eventTypeId: config.eventTypeId.toString(),
-    eventTypeSlug: config.eventSlug,
-    duration: config.eventDuration.toString(),
-  });
-
-  // Add username list parameter
-  params.append('usernameList[]', config.username);
-  
-  const url = `${BASE_URL}/slots/available?${params}`;
-
-  console.log('Fetching availability from:', url);
-  
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${config.apiKey}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Failed to fetch availability:', {
-      status: response.status,
-      statusText: response.statusText,
-      error: errorText,
+  try {
+    const startTime = new Date().toISOString();
+    const endTime = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+    
+    const params = new URLSearchParams({
+      startTime,
+      endTime,
+      eventTypeId: config.eventTypeId.toString(),
+      eventTypeSlug: config.eventSlug,
+      duration: config.eventDuration.toString(),
     });
-    throw new Error(`Failed to fetch availability: ${response.statusText}`);
-  }
 
-  const data = await response.json();
-  console.log('Availability response:', JSON.stringify(data, null, 2));
-  
-  // Validate the response
-  const parsed = availabilityResponseSchema.parse(data);
-  
-  // Convert the date-grouped slots into a flat array
-  const slots = Object.values(parsed.data.slots).flat();
-  
-  return { slots };
+    // Add username list parameter
+    params.append('usernameList[]', config.username);
+    
+    const url = `${BASE_URL}/slots/available?${params}`;
+
+    console.log('Fetching availability from:', url);
+    
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${config.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Failed to fetch availability:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+      });
+      throw new Error(`Failed to fetch availability: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('Availability response:', JSON.stringify(data, null, 2));
+    
+    // Validate the response
+    const parsed = availabilityResponseSchema.parse(data);
+    
+    // Convert the date-grouped slots into a flat array
+    const slots = Object.values(parsed.data.slots).flat();
+    
+    return {
+      success: true,
+      availability: { slots }
+    };
+  } catch (error) {
+    console.error('Failed to fetch availability:', error);
+    return {
+      success: false,
+      error: 'Failed to fetch availability'
+    };
+  }
 }
 
-export async function createBooking(details: BookingDetails) {
-  const response = await fetch(`${BASE_URL}/bookings`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${config.apiKey}`,
-      'Content-Type': 'application/json',
-      'cal-api-version': '2024-08-13'
-    },
-    body: JSON.stringify({
-      start: details.startTime,
-      eventTypeId: config.eventTypeId,
-      attendee: {
-        name: details.name,
-        email: details.email,
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+export async function createBooking(details: BookingDetails): Promise<BookingResponse> {
+  try {
+    const response = await fetch(`${BASE_URL}/bookings`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${config.apiKey}`,
+        'Content-Type': 'application/json',
+        'cal-api-version': '2024-08-13'
       },
-      metadata: {
-        company: details.company,
-        notes: details.notes || '',
-        phone: details.phone
-      }
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Failed to create booking:', {
-      status: response.status,
-      statusText: response.statusText,
-      error: errorText,
+      body: JSON.stringify({
+        eventTypeId: config.eventTypeId,
+        responses: {
+          name: details.name,
+          email: details.email,
+          company: details.company,
+          phone: details.phone,
+          notes: details.notes,
+        },
+        timeZone: 'America/Los_Angeles',
+        startTime: details.startTime,
+      }),
     });
-    throw new Error(`Failed to create booking: ${response.statusText}`);
-  }
 
-  const data = await response.json();
-  return data.data;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Failed to create booking:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+      });
+      throw new Error(`Failed to create booking: ${response.statusText}`);
+    }
+
+    const booking = await response.json();
+    return {
+      success: true,
+      booking
+    };
+  } catch (error) {
+    console.error('Failed to create booking:', error);
+    return {
+      success: false,
+      error: 'Failed to create booking'
+    };
+  }
 }

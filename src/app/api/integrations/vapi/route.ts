@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAvailability, createBooking } from '@/services/cal';
+import { getAvailability, createBooking } from '@/lib/cal';
 import { z } from 'zod';
 
 // Schema for the Vapi tool call request

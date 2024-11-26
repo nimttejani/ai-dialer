@@ -1,15 +1,11 @@
 import { POST } from '../route';
-import { getAvailability, createBooking } from '@/services/cal';
+import { getAvailability, createBooking } from '@/lib/cal';
 import { formatAvailabilityForVAPI } from '@/lib/cal';
 
 // Mock the cal service functions
-jest.mock('@/services/cal', () => ({
+jest.mock('@/lib/cal', () => ({
   getAvailability: jest.fn(),
   createBooking: jest.fn(),
-}));
-
-// Mock formatAvailabilityForVAPI
-jest.mock('@/lib/cal', () => ({
   formatAvailabilityForVAPI: jest.fn(),
 }));
 
