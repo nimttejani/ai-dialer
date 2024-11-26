@@ -3,16 +3,16 @@ import { supabase as defaultClient } from '../supabase'
 
 export type AutomationSettings = {
   automation_enabled: boolean
-  max_calls_batch?: number
-  retry_interval?: number
-  max_attempts?: number
+  max_calls_batch: number
+  retry_interval: number
+  max_attempts: number
 }
 
-const DEFAULT_SETTINGS: AutomationSettings = {
+export const DEFAULT_SETTINGS: AutomationSettings = {
   automation_enabled: false,
-  max_calls_batch: 5,
+  max_calls_batch: 10,
   retry_interval: 4,
-  max_attempts: 3
+  max_attempts: 2
 }
 
 class SettingsService {
@@ -71,11 +71,17 @@ class SettingsService {
       if (error) throw error
 
       return { success: true }
-    } catch (error: any) {
-      console.log('Error updating automation settings:', error.message)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : typeof error === 'string' 
+          ? error 
+          : 'Failed to update settings'
+      
+      console.log('Error updating automation settings:', errorMessage)
       return { 
         success: false, 
-        error: error.message || 'Failed to update settings'
+        error: errorMessage
       }
     }
   }

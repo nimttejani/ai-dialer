@@ -1,6 +1,7 @@
-import { NextResponse, Request } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { SettingsService } from '@/lib/services/settings'
+import { SettingsService, DEFAULT_SETTINGS } from '@/lib/services/settings'
+import { Lead } from '@/lib/supabase'
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) throw new Error('NEXT_PUBLIC_SUPABASE_URL is required')
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required')
@@ -35,15 +36,15 @@ async function getAutomationSettings() {
     console.error('Error fetching settings:', error);
     return {
       automation_enabled: false,
-      max_calls_batch: 5,
-      retry_interval: 4,
-      max_attempts: 3
+      max_calls_batch: DEFAULT_SETTINGS.max_calls_batch,
+      retry_interval: DEFAULT_SETTINGS.retry_interval,
+      max_attempts: DEFAULT_SETTINGS.max_attempts
     }
   }
 }
 
 // Initiate a VAPI call
-async function initiateVapiCall(lead: any) {
+async function initiateVapiCall(lead: Lead) {
   console.log(`Initiating VAPI call for lead:`, lead);
   
   const payload = {
@@ -74,7 +75,7 @@ async function initiateVapiCall(lead: any) {
   return JSON.parse(responseData);
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     console.log('Cron job started');
     
@@ -94,16 +95,21 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'Automation is disabled' })
     }
 
+    // Use default values if settings properties are undefined
+    const maxCallsBatch = settings.max_calls_batch ?? DEFAULT_SETTINGS.max_calls_batch;
+    const retryInterval = settings.retry_interval ?? DEFAULT_SETTINGS.retry_interval;
+    const maxAttempts = settings.max_attempts ?? DEFAULT_SETTINGS.max_attempts;
+
     // Fetch leads to process
     console.log('Fetching pending leads...');
     const { data: leads, error: fetchError } = await supabase
       .from('leads')
       .select('*')
       .eq('status', 'pending')
-      .or(`last_called_at.is.null,last_called_at.lt.${new Date(Date.now() - settings.retry_interval * 60 * 60 * 1000).toISOString()}`)
-      .lt('call_attempts', settings.max_attempts)
+      .or(`last_called_at.is.null,last_called_at.lt.${new Date(Date.now() - retryInterval * 60 * 60 * 1000).toISOString()}`)
+      .lt('call_attempts', maxAttempts)
       .order('last_called_at', { ascending: true, nullsFirst: true })
-      .limit(settings.max_calls_batch)
+      .limit(maxCallsBatch)
 
     if (fetchError) {
       console.log('Error fetching leads:', fetchError);
