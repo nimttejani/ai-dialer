@@ -3,13 +3,17 @@ import { z } from 'zod';
 if (!process.env.CALCOM_API_KEY) throw new Error('CALCOM_API_KEY is required');
 if (!process.env.CALCOM_EVENT_TYPE_ID) throw new Error('CALCOM_EVENT_TYPE_ID is required');
 if (!process.env.CALCOM_EVENT_DURATION) throw new Error('CALCOM_EVENT_DURATION is required');
+if (!process.env.CALCOM_USERNAME) throw new Error('CALCOM_USERNAME is required');
+if (!process.env.CALCOM_EVENT_SLUG) throw new Error('CALCOM_EVENT_SLUG is required');
 
 const BASE_URL = 'https://api.cal.com/v2';
 
 const config = {
   apiKey: process.env.CALCOM_API_KEY,
-  eventTypeId: process.env.CALCOM_EVENT_TYPE_ID,
+  eventTypeId: parseInt(process.env.CALCOM_EVENT_TYPE_ID, 10),
   eventDuration: parseInt(process.env.CALCOM_EVENT_DURATION, 10),
+  username: process.env.CALCOM_USERNAME,
+  eventSlug: process.env.CALCOM_EVENT_SLUG,
 } as const;
 
 const slotSchema = z.object({
@@ -19,7 +23,10 @@ const slotSchema = z.object({
 });
 
 const availabilityResponseSchema = z.object({
-  slots: z.array(slotSchema)
+  status: z.literal('success'),
+  data: z.object({
+    slots: z.record(z.string(), z.array(slotSchema))
+  })
 });
 
 type Slot = z.infer<typeof slotSchema>;
@@ -40,24 +47,48 @@ export async function getAvailability(days: number = 5): Promise<AvailabilityRes
   const startTime = new Date().toISOString();
   const endTime = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
   
-  const url = `${BASE_URL}/slots?${new URLSearchParams({
-    eventTypeId: config.eventTypeId,
+  const params = new URLSearchParams({
     startTime,
-    endTime
-  })}`;
+    endTime,
+    eventTypeId: config.eventTypeId.toString(),
+    eventTypeSlug: config.eventSlug,
+    duration: config.eventDuration.toString(),
+  });
 
+  // Add username list parameter
+  params.append('usernameList[]', config.username);
+  
+  const url = `${BASE_URL}/slots/available?${params}`;
+
+  console.log('Fetching availability from:', url);
+  
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${config.apiKey}`,
+      'Content-Type': 'application/json',
     },
   });
 
   if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to fetch availability:', {
+      status: response.status,
+      statusText: response.statusText,
+      error: errorText,
+    });
     throw new Error(`Failed to fetch availability: ${response.statusText}`);
   }
 
   const data = await response.json();
-  return availabilityResponseSchema.parse(data);
+  console.log('Availability response:', JSON.stringify(data, null, 2));
+  
+  // Validate the response
+  const parsed = availabilityResponseSchema.parse(data);
+  
+  // Convert the date-grouped slots into a flat array
+  const slots = Object.values(parsed.data.slots).flat();
+  
+  return { slots };
 }
 
 export async function createBooking(details: BookingDetails) {
