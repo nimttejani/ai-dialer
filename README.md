@@ -15,6 +15,13 @@ This system automates the process of calling HVAC companies to book product demo
 - 📈 Real-time status tracking
 - 📁 Bulk lead import via CSV
 
+## Project Structure
+
+- `src/` - Main application code
+- `docs/` - Project documentation
+- `supabase/` - Database migrations and types
+- `vapi/` - Voice AI integration and call scripts
+
 ## Tech Stack
 
 - **Frontend**: 
@@ -23,6 +30,7 @@ This system automates the process of calling HVAC companies to book product demo
   - shadcn/ui component library
   - Tailwind CSS with class-variance-authority
 - **Database**: Supabase Postgres
+- **Authentication**: Supabase Auth
 - **Package Manager**: pnpm
 - **Automation**: Vercel Cron
 - **External Services**:
@@ -98,7 +106,7 @@ VALUES ('Test Company', '+1234567890', 'test@example.com', 'pending');
 
 3. Trigger the cron job:
 ```bash
-curl http://localhost:3000/api/cron
+curl -H "Authorization: Bearer your_cron_secret" http://localhost:3000/api/cron
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the application.

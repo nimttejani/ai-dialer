@@ -29,8 +29,10 @@ The HVAC Sales Automation system is designed to automate outbound sales calls to
     │   ├── leads.ts       # Lead management operations
     │   └── settings.ts    # System settings and automation config
     ├── cal.ts            # Cal.com API integration
+    ├── database.types.ts # Supabase database type definitions
     ├── supabase.ts       # Supabase client configuration
-    └── utils/            # Shared utilities
+    ├── types.ts          # Shared type definitions
+    └── utils.ts          # Shared utilities
     ```
   - Each service encapsulates:
     - Database operations
@@ -80,37 +82,30 @@ The HVAC Sales Automation system is designed to automate outbound sales calls to
 
 ### Integration Layer
 - **VAPI.ai Integration**
-  - Handles outbound voice calls
+  - Handles outbound voice calls via `/api/integrations/vapi` endpoint
   - Manages conversation flow
   - Reports call outcomes
   
 - **Cal.com Integration**
   - Structure:
     ```
-    /src/lib/cal.ts              # Low-level Cal.com API client
-    /src/services/cal.ts         # Business logic and error handling
-    /api/webhook/vapi/route.ts   # Endpoint for VAPI to call
-    /api/webhook/cal/route.ts    # Endpoint for Cal.com webhooks
+    /src/lib/cal.ts         # Cal.com API client and business logic
     ```
-  - Webhook Flow:
+  - Integration Flow:
     1. VAPI Flow:
        - VAPI agent discusses scheduling with caller
-       - Agent calls `/api/webhook/vapi` endpoint to:
-         - Check available time slots
-         - Book appointments when caller confirms
+       - Agent interacts with integration endpoint
        - Endpoint validates VAPI secret and handles request
        - Response formatted for VAPI to relay to caller
 
     2. Cal.com Flow:
-       - Cal.com sends webhook events to `/api/webhook/cal`
-       - Events include: created, rescheduled, cancelled bookings
-       - Endpoint validates Cal.com signature
+       - Integration with Cal.com API for appointment scheduling
+       - Handles booking creation and management
        - Updates appointment status in database
        - Triggers any necessary notifications
 
   - Security:
-    - VAPI endpoint protected by our generated API key (x-vapi-secret header)
-    - Cal.com endpoint protected by webhook signature verification
+    - VAPI endpoint protected by authentication header
     - All credentials stored in environment variables
 
 - **Resend Integration**
@@ -153,11 +148,13 @@ The HVAC Sales Automation system is designed to automate outbound sales calls to
    ```
 
 ## Security Considerations
-- Authentication implemented via Supabase Auth
-- Row Level Security (RLS) policies ensure data isolation between users
-- Rate limiting on API endpoints
-- Webhook signature verification for Cal.com and VAPI integrations
-- Secure environment variables for integration keys
+- Authentication implemented via Supabase Auth and Next.js Auth Helpers
+- Middleware protection for API routes:
+  - All `/api/*` routes require authentication except:
+    - `/api/cron` (protected by secret)
+    - `/api/integrations/vapi` (protected by VAPI secret)
+- Row Level Security (RLS) policies ensure data isolation
+- Secure environment variables for all integration keys
 - CORS configuration in middleware.ts
 - API route protection via Next.js middleware
 

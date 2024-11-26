@@ -1,5 +1,18 @@
 # API Documentation
 
+## Authentication
+
+All API endpoints require authentication via Supabase Auth except:
+- `/api/cron` (requires CRON_SECRET)
+- `/api/integrations/vapi` (requires VAPI authentication)
+
+Unauthorized requests will receive:
+```typescript
+{
+  error: "Unauthorized"
+}
+```
+
 ## Endpoints Overview
 
 ### Lead Management
@@ -9,21 +22,23 @@ Retrieves all leads from the system.
 
 **Response:**
 ```typescript
-{
-  leads: {
+[
+  {
     id: string;
     company_name: string;
     phone: string;
     email: string;
-    status: 'pending' | 'no_answer' | 'scheduled' | 'not_interested';
+    status: 'pending' | 'calling' | 'no_answer' | 'scheduled' | 'not_interested';
     call_attempts: number;
     last_called_at: string | null;
-  }[]
-}
+    created_at: string;
+    updated_at: string;
+  }
+]
 ```
 
 #### POST `/api/leads`
-Add a new lead to the system.
+Add new leads to the system. Accepts single lead or array of leads.
 
 **Request Body:**
 ```typescript
@@ -33,18 +48,24 @@ Add a new lead to the system.
   email: string;
 }
 ```
+or
+```typescript
+Array<{
+  company_name: string;
+  phone: string;
+  email: string;
+}>
+```
 
 #### POST `/api/leads/import`
 Bulk import leads via CSV.
 
 **Request Body:**
 ```typescript
-{
-  file: File; // CSV file
-}
+FormData with 'file' field containing CSV file
 ```
 
-#### PUT `/api/leads/:id`
+#### PUT `/api/leads/[id]`
 Update lead details.
 
 **Request Body:**
@@ -53,10 +74,13 @@ Update lead details.
   company_name?: string;
   phone?: string;
   email?: string;
+  status?: 'pending' | 'calling' | 'no_answer' | 'scheduled' | 'not_interested';
+  call_attempts?: number;
+  last_called_at?: string | null;
 }
 ```
 
-#### DELETE `/api/leads/:id`
+#### DELETE `/api/leads/[id]`
 Remove a lead from the system.
 
 ### Automation Control
@@ -67,9 +91,10 @@ Get current automation system status.
 **Response:**
 ```typescript
 {
-  active: boolean;
-  next_run: string;
-  leads_in_queue: number;
+  automation_enabled: boolean;
+  max_calls_batch: number;
+  retry_interval: number;
+  max_attempts: number;
 }
 ```
 
@@ -79,20 +104,37 @@ Enable or disable the automation system.
 **Request Body:**
 ```typescript
 {
-  active: boolean;
+  automation_enabled: boolean;
 }
 ```
 
-### Webhook Endpoints
+### Cron Job
 
-### VAPI Integration
-
-#### POST `/api/webhook/vapi`
-Endpoint for VAPI agent to check availability and book appointments.
+#### GET `/api/cron`
+Trigger the automation system to process pending leads.
 
 **Authentication:**
 ```http
-x-vapi-secret: YOUR_GENERATED_API_KEY
+Authorization: Bearer YOUR_CRON_SECRET
+```
+
+**Response:**
+```typescript
+{
+  message: string; // Status message about the automation run
+}
+```
+
+### Integrations
+
+#### VAPI Integration
+
+##### POST `/api/integrations/vapi`
+Endpoint for VAPI agent to interact with the system.
+
+**Authentication:**
+```http
+Authorization: Bearer YOUR_VAPI_SECRET
 ```
 
 **Request Body:**
@@ -105,57 +147,43 @@ x-vapi-secret: YOUR_GENERATED_API_KEY
     company: string;
     phone: string;
     notes?: string;
-    startTime: string; // ISO string, required for booking
+    startTime: string; // ISO string
   };
 }
 ```
 
-**Responses:**
-
-1. Check Availability
+**Response:**
 ```typescript
 {
-  success: true;
-  message: string; // Formatted availability for VAPI to read
-  availability: {
-    date: string;
-    slots: string[];
-  }[];
-}
-```
-
-2. Book Appointment
-```typescript
-{
-  success: true;
-  message: string; // Confirmation message for VAPI to read
-  booking: {
-    id: string;
-    startTime: string;
+  success: boolean;
+  message: string;
+  data?: {
+    availability?: Array<{
+      date: string;
+      slots: string[];
+    }>;
+    booking?: {
+      id: string;
+      startTime: string;
+    };
   };
 }
 ```
 
-### Cal.com Integration
+#### Cal.com Integration
 
-#### POST `/api/webhook/cal`
-Endpoint for receiving Cal.com webhook events.
-
-**Authentication:**
-```http
-cal-signature: SIGNATURE_FROM_CALCOM
-```
+##### POST `/api/integrations/cal`
+Endpoint for Cal.com API integration.
 
 **Request Body:**
 ```typescript
 {
-  triggerEvent: 'BOOKING_CREATED' | 'BOOKING_RESCHEDULED' | 'BOOKING_CANCELLED';
+  action: string;
   payload: {
-    uid: string;
+    uid?: string;
     startTime?: string;
     endTime?: string;
-    status: string;
-    cancellationReason?: string;
+    status?: string;
     attendees?: Array<{
       email: string;
       name: string;
@@ -168,37 +196,22 @@ cal-signature: SIGNATURE_FROM_CALCOM
 **Response:**
 ```typescript
 {
-  success: true;
-  message: string; // e.g., "Successfully processed BOOKING_CREATED event"
+  success: boolean;
+  message: string;
 }
 ```
 
-## Real-time Subscriptions
+## Error Handling
 
-### Lead Status Updates
-```typescript
-supabase
-  .from('leads')
-  .on('UPDATE', (payload) => {
-    // Handle lead status change
-  })
-  .subscribe()
-```
-
-## Error Responses
-
-All endpoints follow this error format:
+API errors follow this format:
 ```typescript
 {
-  error: {
-    message: string;
-    code: string;
-  }
+  error: string;
 }
 ```
 
-Common error codes:
-- `INVALID_INPUT`: Request validation failed
-- `NOT_FOUND`: Requested resource doesn't exist
-- `RATE_LIMITED`: Too many requests
-- `INTEGRATION_ERROR`: External service error
+Common HTTP Status Codes:
+- 200: Success
+- 401: Unauthorized
+- 400: Bad Request
+- 500: Internal Server Error
