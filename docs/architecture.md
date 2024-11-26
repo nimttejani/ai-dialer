@@ -18,16 +18,19 @@ The HVAC Sales Automation system is designed to automate outbound sales calls to
 - **Client Strategy**:
   - Frontend: Uses `createClientComponentClient()` for authenticated user operations
   - Server (API Routes): Uses `createClient()` with service role key for privileged operations
-  - Authentication handled via Next.js Auth Helpers
+  - Authentication handled via Next.js Auth Helpers and Supabase Auth
   - Row Level Security (RLS) policies enforce access control
 
 - **Services Layer**:
   - Structure:
     ```
-    /src/lib/services/
-    ├── leads.ts       # Lead management operations
-    ├── settings.ts    # System settings and automation config
-    └── appointments.ts # Appointment scheduling and management
+    /src/lib/
+    ├── services/
+    │   ├── leads.ts       # Lead management operations
+    │   └── settings.ts    # System settings and automation config
+    ├── cal.ts            # Cal.com API integration
+    ├── supabase.ts       # Supabase client configuration
+    └── utils/            # Shared utilities
     ```
   - Each service encapsulates:
     - Database operations
@@ -37,37 +40,43 @@ The HVAC Sales Automation system is designed to automate outbound sales calls to
 
 - **Schema**:
   - `leads` table:
-    - `id`: UUID (primary key)
-    - `company_name`: text
-    - `phone`: text
-    - `email`: text
-    - `status`: enum ('pending', 'calling', 'no_answer', 'scheduled', 'not_interested')
-    - `call_attempts`: integer
-    - `last_called_at`: timestamp
-    - `created_at`: timestamp
-    - `updated_at`: timestamp
+    - `id`: UUID (primary key, default: uuid_generate_v4())
+    - `company_name`: text (not null)
+    - `phone`: text (not null)
+    - `email`: text (not null)
+    - `status`: lead_status enum ('pending', 'calling', 'no_answer', 'scheduled', 'not_interested')
+    - `call_attempts`: integer (default: 0)
+    - `last_called_at`: timestamp with time zone
+    - `created_at`: timestamp with time zone (default: now())
+    - `updated_at`: timestamp with time zone (default: now())
+    - Indexes:
+      - idx_leads_status on status
+      - idx_leads_last_called_at on last_called_at
   
   - `settings` table:
-    - `id`: UUID (primary key)
-    - `automation_enabled`: boolean
-    - `max_calls_batch`: integer
-    - `retry_interval`: integer
-    - `max_attempts`: integer
-    - `created_at`: timestamp
-    - `updated_at`: timestamp
+    - `id`: UUID (primary key, default: gen_random_uuid())
+    - `automation_enabled`: boolean (default: false)
+    - `max_calls_batch`: integer (default: 5)
+    - `retry_interval`: integer (default: 4)
+    - `max_attempts`: integer (default: 3)
+    - `created_at`: timestamp with time zone (default: now())
+    - `updated_at`: timestamp with time zone (default: now())
 
   - `appointments` table:
-    - `id`: UUID (primary key)
-    - `cal_booking_uid`: text (unique)
+    - `id`: UUID (primary key, default: gen_random_uuid())
+    - `cal_booking_uid`: text (unique, not null)
     - `customer_name`: text
     - `customer_email`: text
     - `customer_phone`: text
     - `start_time`: timestamptz
     - `end_time`: timestamptz
-    - `status`: text
+    - `status`: text (not null)
     - `cancellation_reason`: text
-    - `created_at`: timestamptz
-    - `updated_at`: timestamptz
+    - `created_at`: timestamptz (default: now())
+    - `updated_at`: timestamptz (default: now())
+    - Indexes:
+      - idx_appointments_cal_booking_uid on cal_booking_uid
+      - idx_appointments_status on status
 
 ### Integration Layer
 - **VAPI.ai Integration**
@@ -144,9 +153,13 @@ The HVAC Sales Automation system is designed to automate outbound sales calls to
    ```
 
 ## Security Considerations
-- Open policy for MVP (no auth required)
+- Authentication implemented via Supabase Auth
+- Row Level Security (RLS) policies ensure data isolation between users
 - Rate limiting on API endpoints
+- Webhook signature verification for Cal.com and VAPI integrations
 - Secure environment variables for integration keys
+- CORS configuration in middleware.ts
+- API route protection via Next.js middleware
 
 ## Monitoring
 - Real-time lead status tracking

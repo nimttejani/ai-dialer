@@ -17,7 +17,11 @@ This system automates the process of calling HVAC companies to book product demo
 
 ## Tech Stack
 
-- **Frontend**: Next.js 15 with App Router
+- **Frontend**: 
+  - Next.js 15 with App Router
+  - TanStack Query (React Query) for data fetching
+  - shadcn/ui component library
+  - Tailwind CSS with class-variance-authority
 - **Database**: Supabase Postgres
 - **Package Manager**: pnpm
 - **Automation**: Vercel Cron
@@ -46,13 +50,27 @@ cp .env.example .env.local
 
 2. Fill in your environment variables:
 ```env
+# Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# VAPI Integration
 VAPI_API_KEY=your_vapi_key
 VAPI_ASSISTANT_ID=your_assistant_id
 VAPI_PHONE_NUMBER_ID=your_phone_number_id
+VAPI_WEBHOOK_SECRET=your_webhook_secret
+
+# Cal.com Integration
 CALCOM_API_KEY=your_calcom_key
+CALCOM_WEBHOOK_SECRET=your_webhook_secret
+
+# Resend
 RESEND_API_KEY=your_resend_key
+
+# Auth
+AUTH_SECRET=your_auth_secret
+AUTH_URL=your_auth_url
 ```
 
 ### Installation
