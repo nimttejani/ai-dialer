@@ -128,27 +128,3 @@ export async function createBooking(details: BookingDetails) {
   const data = await response.json();
   return data.data;
 }
-
-export function formatAvailabilityForVAPI(availability: AvailabilityResponse): string {
-  // Group slots by date
-  const slotsByDate = availability.slots.reduce((acc, slot: Slot) => {
-    const date = new Date(slot.time).toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-    });
-    
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(new Date(slot.time).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    }));
-    
-    return acc;
-  }, {} as Record<string, string[]>);
-
-  return Object.entries(slotsByDate)
-    .map(([date, times]) => `${date}: ${times.join(', ')}`)
-    .join('\n');
-}

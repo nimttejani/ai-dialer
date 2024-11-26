@@ -1,87 +1,166 @@
 import { NextResponse } from 'next/server';
 import { getAvailability, createBooking } from '@/services/cal';
-import { formatAvailabilityForVAPI } from '@/lib/cal';
 import { z } from 'zod';
 
-// Schema for the booking request
-const bookingRequestSchema = z.object({
-  action: z.enum(['check_availability', 'book_appointment']),
-  bookingDetails: z.object({
-    name: z.string(),
-    email: z.string().email(),
-    company: z.string(),
-    phone: z.string(),
-    notes: z.string().optional(),
-    startTime: z.string(), 
-  }).optional(), 
+// Schema for the Vapi tool call request
+const requestSchema = z.object({
+  message: z.object({
+    type: z.literal('tool-calls'),
+    toolCalls: z.array(z.object({
+      id: z.string(),
+      type: z.literal('function'),
+      function: z.object({
+        name: z.enum(['checkAvailability', 'bookAppointment']),
+        arguments: z.record(z.any())
+      })
+    }))
+  })
+});
+
+// Schema for booking arguments
+const bookingArgsSchema = z.object({
+  name: z.string(),
+  email: z.string().email(),
+  company: z.string(),
+  phone: z.string(),
+  notes: z.string().optional(),
+  startTime: z.string()
 });
 
 // Validate request authentication
 function validateApiKey(request: Request) {
   const apiKey = request.headers.get('x-vapi-secret');
   if (!apiKey || apiKey !== process.env.VAPI_SECRET_KEY) {
-    throw new Error('Unauthorized: Invalid API key');
+    return false;
   }
+  return true;
 }
 
 export async function POST(request: Request) {
   try {
+    // Log request details for debugging
+    const requestBody = await request.json();
+    const headers = Object.fromEntries(request.headers.entries());
+    console.log('VAPI Request:', {
+      method: request.method,
+      url: request.url,
+      headers,
+      body: JSON.stringify(requestBody, null, 2)
+    });
+
     // Validate API key
-    validateApiKey(request);
+    if (!validateApiKey(request)) {
+      return NextResponse.json({
+        results: [{
+          toolCallId: '',
+          result: 'Error: Unauthorized: Invalid API key'
+        }]
+      }, { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
     // Parse and validate request body
-    const body = await request.json();
-    const { action, bookingDetails } = bookingRequestSchema.parse(body);
+    const parsedRequest = requestSchema.parse(requestBody);
+    
+    // Handle tool calls format
+    const toolCall = parsedRequest.message.toolCalls[0];
+    const functionName = toolCall.function.name;
+    const toolCallId = toolCall.id;
 
-    // Handle different actions
-    switch (action) {
-      case 'check_availability': {
+    // Handle different function calls
+    switch (functionName) {
+      case 'checkAvailability': {
         const result = await getAvailability(5);
         if (!result.success) {
-          throw new Error(result.error);
+          return NextResponse.json({
+            results: [{
+              toolCallId,
+              result: `Error: ${result.error}`
+            }]
+          }, { 
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
         
-        const formattedAvailability = formatAvailabilityForVAPI(result.availability!);
-        
         return NextResponse.json({
-          success: true,
-          message: formattedAvailability ? 
-            `Here are the available time slots:\n${formattedAvailability}` :
-            "I apologize, but I don't see any available slots in the next 5 days. Would you like me to check further dates?",
-          availability: result.availability // Raw data for VAPI to parse if needed
+          results: [{
+            toolCallId,
+            result: {
+              availableSlots: result.availability?.slots || []
+            }
+          }]
+        }, { 
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
         });
       }
 
-      case 'book_appointment': {
-        if (!bookingDetails) {
-          throw new Error('Booking details are required for appointment booking');
-        }
-        if (!bookingDetails.startTime) {
-          throw new Error('Start time is required for appointment booking');
+      case 'bookAppointment': {
+        let bookingDetails;
+        try {
+          const args = toolCall.function.arguments;
+          bookingDetails = bookingArgsSchema.parse(args);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (e) {
+          return NextResponse.json({
+            results: [{
+              toolCallId,
+              result: 'Error: Invalid booking details provided'
+            }]
+          }, { 
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
 
         const result = await createBooking(bookingDetails);
         if (!result.success) {
-          throw new Error(result.error);
+          return NextResponse.json({
+            results: [{
+              toolCallId,
+              result: `Error: ${result.error}`
+            }]
+          }, { 
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
         
         return NextResponse.json({
-          success: true,
-          message: `Great! I've booked your demo for ${new Date(bookingDetails.startTime).toLocaleString('en-US', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-            timeZoneName: 'short'
-          })}`,
+          results: [{
+            toolCallId,
+            result: `Successfully booked appointment for ${bookingDetails.name} at ${bookingDetails.startTime}`
+          }]
+        }, { 
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
         });
       }
 
       default:
-        throw new Error('Invalid action');
+        return NextResponse.json({
+          results: [{
+            toolCallId,
+            result: 'Error: Invalid function name'
+          }]
+        }, { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
     }
   } catch (error) {
-    throw error;
+    console.error('Error processing request:', error);
+    return NextResponse.json({
+      results: [{
+        toolCallId: '',
+        result: error instanceof Error ? error.message : 'An unexpected error occurred'
+      }]
+    }, { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
