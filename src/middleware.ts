@@ -6,8 +6,11 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const supabase = createMiddlewareClient({ req, res })
 
-  // Allow cron endpoint to bypass session check
-  if (req.nextUrl.pathname === '/api/cron') {
+  // Allow these endpoints to bypass session check
+  if (
+    req.nextUrl.pathname === '/api/cron' ||
+    req.nextUrl.pathname === '/api/integrations/vapi'
+  ) {
     return res
   }
 
