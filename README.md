@@ -118,25 +118,6 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 - [Environment Setup](./docs/environment-setup.md)
 - [Next.js 15 API Patterns](./docs/next-api-patterns.md)
 
-## Development Workflow
-
-1. Create feature branch from `main`
-2. Make changes and test locally
-3. Submit PR for review
-4. Merge to `main` after approval
-
-## Deployment
-
-The application is automatically deployed to Vercel on merges to `main`.
-
-## Success Metrics
-
-1. Successful automated calls through VAPI
-2. Accurate lead lifecycle tracking
-3. Successful appointment scheduling
-4. Timely follow-up emails
-5. System reliability and uptime
-
 ## License
 
 MIT
