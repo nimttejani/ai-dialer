@@ -6,40 +6,61 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const supabase = createMiddlewareClient({ req, res })
 
-  // Allow these endpoints to bypass session check
-  if (
-    req.nextUrl.pathname === '/api/cron' ||
-    req.nextUrl.pathname === '/api/integrations/vapi'
-  ) {
+  // Define public routes that bypass auth
+  const PUBLIC_ROUTES = [
+    '/api/cron',
+    '/api/integrations/vapi',
+    '/login'
+  ]
+  
+  if (PUBLIC_ROUTES.includes(req.nextUrl.pathname)) {
     return res
   }
 
   try {
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const { 
+      data: { user }, 
+      error: userError 
+    } = await supabase.auth.getUser()
 
-    // If there's no valid user and the request is to an API route, return 401
-    if ((!user || error) && req.nextUrl.pathname.startsWith('/api/')) {
+    if ((!user || userError) && req.nextUrl.pathname.startsWith('/api/')) {
       return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
+        { error: 'Unauthorized access' },
+        { 
+          status: 401,
+          headers: {
+            'WWW-Authenticate': 'Bearer'
+          }
+        }
       )
     }
 
-    if (error) {
-      console.error('Auth error:', error.message)
+    if (userError) {
+      console.error('Auth error:', userError.message)
+      // Redirect non-API routes to login on auth error
+      if (!req.nextUrl.pathname.startsWith('/api/')) {
+        return NextResponse.redirect(new URL('/login', req.url))
+      }
     }
 
     return res
   } catch (e) {
     console.error('Middleware error:', e)
-    // For API routes, return 500 on error
+    
     if (req.nextUrl.pathname.startsWith('/api/')) {
       return NextResponse.json(
         { error: 'Internal server error' },
-        { status: 500 }
+        { 
+          status: 500,
+          headers: {
+            'Cache-Control': 'no-store'
+          }
+        }
       )
     }
-    return res
+    
+    // Redirect non-API routes to login on error
+    return NextResponse.redirect(new URL('/login', req.url))
   }
 }
 
