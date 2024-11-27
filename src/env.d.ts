@@ -4,7 +4,7 @@ declare namespace NodeJS {
     VAPI_API_KEY: string;
     VAPI_AGENT_ID: string;
     VAPI_SECRET_KEY: string;      // Our generated API key for authenticating VAPI requests
-    HVAC_DIALLER_URL: string;     // Base URL for the application
+    AI_DIALER_URL: string;     // Base URL for the application
 
     // Cal.com Configuration
     CALCOM_API_KEY: string;

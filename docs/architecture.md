@@ -1,7 +1,7 @@
-# HVAC Sales Automation Architecture
+# AI Dialer Architecture
 
 ## System Overview
-The HVAC Sales Automation system is designed to automate outbound sales calls to HVAC companies using AI-powered voice technology. The system manages leads, schedules calls, and handles appointment booking automatically.
+The AI Dialer is a proof-of-concept system designed to demonstrate automated outbound calling capabilities using AI-powered voice technology. The system manages leads, schedules calls, and handles appointment booking through an autonomous voice agent.
 
 ## Technical Architecture
 

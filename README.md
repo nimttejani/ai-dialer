@@ -1,16 +1,19 @@
-# HVAC Sales Automation
+# AI Dialer
 
-> ⚠️ **Note**: This project is currently under development. See the [development roadmap](docs/ROADMAP.md) for planned features and improvements.
+> ⚠️ **Proof of Concept**: This is a demonstration project showcasing AI-powered voice technology for automated calling. It is not intended for production use.
 
-An automated outbound calling system for HVAC companies using AI-powered voice technology.
+A proof-of-concept system that demonstrates autonomous voice agent capabilities for automated outbound calling. Built with VAPI.ai for voice synthesis, this project explores the potential of AI agents in handling automated phone conversations.
 
 ## Project Overview
 
-This system automates the process of calling HVAC companies to book product demos. It leverages VAPI.ai for voice calls, Cal.com for appointment scheduling, and Resend for email communications.
+This demonstration system shows how AI can automate outbound calls to schedule appointments. It leverages:
+- VAPI.ai for voice synthesis and conversation
+- Cal.com for appointment scheduling
+- Resend for email communications
 
 ### Key Features
 
-- 🤖 Automated outbound calling with AI voice technology
+- 🤖 AI voice agent with natural conversation capabilities
 - 📊 Lead management dashboard
 - 📅 Automated appointment scheduling
 - 📧 Automated email follow-ups

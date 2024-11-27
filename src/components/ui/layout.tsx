@@ -21,7 +21,7 @@ export function Layout({ children }: LayoutProps) {
         )}
       >
         <div className="p-6">
-          <h1 className="text-xl font-semibold">HVAC Dialler</h1>
+          <h1 className="text-xl font-semibold">AI Dialer</h1>
         </div>
         <nav className="px-4 py-2">
           <button

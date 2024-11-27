@@ -67,7 +67,7 @@ export default function LoginPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold">Sign in to your account</h1>
           <p className="mt-2 text-sm text-gray-600">
-            Enter your email and password to access the HVAC Lead Management System
+            Enter your email and password to access AI Dialer
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>

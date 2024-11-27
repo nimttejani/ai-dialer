@@ -1,6 +1,6 @@
 # Development Roadmap
 
-This document outlines the upcoming development priorities for the HVAC Dialler project.
+This document outlines the upcoming development priorities for the AI Dialer proof-of-concept.
 
 ## Priority Tasks
 

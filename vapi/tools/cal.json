@@ -2,7 +2,7 @@
   "name": "cal",
   "description": "Check availability and book appointments through Cal.com",
   "api": {
-    "url": "${HVAC_DIALLER_URL}/api/cal",
+    "url": "${AI_DIALER_URL}/api/cal",
     "headers": {
       "Content-Type": "application/json",
       "x-vapi-secret": "${VAPI_SECRET_KEY}"

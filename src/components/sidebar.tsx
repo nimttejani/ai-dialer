@@ -24,7 +24,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
     >
       <div className="p-4 flex items-center justify-between">
         {!collapsed && (
-          <h1 className="text-xl font-semibold">HVAC Dialler</h1>
+          <h1 className="text-xl font-semibold">AI Dialer</h1>
         )}
         <Button
           variant="ghost"
