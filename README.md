@@ -1,5 +1,7 @@
 # HVAC Sales Automation
 
+> ⚠️ **Note**: This project is currently under development. See the [development roadmap](docs/ROADMAP.md) for planned features and improvements.
+
 An automated outbound calling system for HVAC companies using AI-powered voice technology.
 
 ## Project Overview
