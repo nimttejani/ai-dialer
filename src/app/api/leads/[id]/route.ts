@@ -1,26 +1,9 @@
 import { NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@/lib/supabase'
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll: () => cookieStore.getAll().map(cookie => ({
-            name: cookie.name,
-            value: cookie.value,
-          })),
-          setAll: () => {
-            // In Next.js app route handlers, we don't need to set cookies
-            // They are handled by the middleware
-          }
-        }
-      }
-    )
+    const supabase = await createRouteHandlerClient()
 
     // Get id from params - properly awaited in Next.js 15
     const { id } = await Promise.resolve(params)
@@ -46,23 +29,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll: () => cookieStore.getAll().map(cookie => ({
-            name: cookie.name,
-            value: cookie.value,
-          })),
-          setAll: () => {
-            // In Next.js app route handlers, we don't need to set cookies
-            // They are handled by the middleware
-          }
-        }
-      }
-    )
+    const supabase = await createRouteHandlerClient()
 
     // Get id from params - properly awaited in Next.js 15
     const { id } = await Promise.resolve(params)

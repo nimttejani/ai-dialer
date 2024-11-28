@@ -1,25 +1,8 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll().map(cookie => ({
-          name: cookie.name,
-          value: cookie.value,
-        })),
-        setAll: () => {
-          // In Next.js app route handlers, we don't need to set cookies
-          // They are handled by the middleware
-        }
-      }
-    }
-  )
+  const supabase = await createRouteHandlerClient()
 
   const { data, error } = await supabase
     .from('leads')
@@ -33,23 +16,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll().map(cookie => ({
-          name: cookie.name,
-          value: cookie.value,
-        })),
-        setAll: () => {
-          // In Next.js app route handlers, we don't need to set cookies
-          // They are handled by the middleware
-        }
-      }
-    }
-  )
+  const supabase = await createRouteHandlerClient()
 
   const body = await request.json()
   const leads = Array.isArray(body) ? body : [body];
@@ -66,23 +33,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll().map(cookie => ({
-          name: cookie.name,
-          value: cookie.value,
-        })),
-        setAll: () => {
-          // In Next.js app route handlers, we don't need to set cookies
-          // They are handled by the middleware
-        }
-      }
-    }
-  )
+  const supabase = await createRouteHandlerClient()
 
   const { ids } = await request.json()
 
