@@ -103,8 +103,7 @@ export async function POST(request: Request) {
         try {
           const args = toolCall.function.arguments;
           bookingDetails = bookingArgsSchema.parse(args);
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        } catch (e) {
+        } catch {
           return NextResponse.json({
             results: [{
               toolCallId,

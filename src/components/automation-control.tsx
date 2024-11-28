@@ -63,8 +63,7 @@ export function AutomationControl({
           variant: "destructive",
         })
       }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to update settings. Please try again.",
