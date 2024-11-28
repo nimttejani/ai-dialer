@@ -19,44 +19,25 @@ export function AuthAwareLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
   useEffect(() => {
-    // First, check the initial session using getUser for better security
-    const checkAuth = async () => {
-      console.log('Starting auth check...');
-      const { data: { user }, error } = await supabase.auth.getUser();
-      console.log('Auth check result:', { hasUser: !!user, error });
-      const isAuthenticated = !!user;
-      setAuthenticated(isAuthenticated);
-      
-      if (!isAuthenticated && pathname !== "/login") {
-        console.log('Not authenticated, redirecting to login...');
-        router.push("/login");
-      }
-      console.log('Setting loading to false');
-      setLoading(false);
-    };
-
-    checkAuth();
-
-    // Then listen for changes
+    // Only handle auth state changes for UI updates
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', { event, hasSession: !!session });
-      const isAuthenticated = !!session;
-      setAuthenticated(isAuthenticated);
-
-      if (!isAuthenticated && pathname !== "/login") {
-        console.log('Session ended, redirecting to login...');
+      if (!session && pathname !== "/login") {
         router.push("/login");
       }
+      // Always update loading state after auth changes
+      setLoading(false);
     });
+
+    // Initial loading state update
+    setLoading(false);
 
     return () => {
       subscription.unsubscribe();
@@ -67,16 +48,12 @@ export function AuthAwareLayout({ children }: { children: React.ReactNode }) {
     return <LoadingScreen />;
   }
 
-  // Only show login page content when on login page
+  // Login page doesn't need dashboard layout
   if (pathname === "/login") {
     return children;
   }
 
-  // Show dashboard layout for authenticated users
-  if (authenticated) {
-    return <DashboardLayout>{children}</DashboardLayout>;
-  }
-
-  // This should never be reached due to the redirect in useEffect
-  return <LoadingScreen />;
+  // For all other routes, use dashboard layout
+  // The middleware ensures these routes are authenticated
+  return <DashboardLayout>{children}</DashboardLayout>;
 }
