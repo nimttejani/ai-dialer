@@ -10,10 +10,15 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
+          getAll: () => cookieStore.getAll().map(cookie => ({
+            name: cookie.name,
+            value: cookie.value,
+          })),
+          setAll: () => {
+            // In Next.js app route handlers, we don't need to set cookies
+            // They are handled by the middleware
+          }
+        }
       }
     )
 
@@ -34,7 +39,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
     return NextResponse.json(data)
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
@@ -47,10 +52,15 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
+          getAll: () => cookieStore.getAll().map(cookie => ({
+            name: cookie.name,
+            value: cookie.value,
+          })),
+          setAll: () => {
+            // In Next.js app route handlers, we don't need to set cookies
+            // They are handled by the middleware
+          }
+        }
       }
     )
 
@@ -66,7 +76,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
     return NextResponse.json({ message: 'Lead deleted successfully' })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
