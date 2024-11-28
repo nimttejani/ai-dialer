@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
-import { supabase as defaultClient } from '../supabase'
+import { supabase as defaultClient } from '@/lib/supabase/client'
 
 export type AutomationSettings = {
   automation_enabled: boolean

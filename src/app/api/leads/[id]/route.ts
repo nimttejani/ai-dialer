@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@/lib/supabase'
+import { createRouteHandlerClient } from '@/lib/supabase/server'
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {

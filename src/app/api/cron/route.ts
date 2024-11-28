@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { SettingsService, DEFAULT_SETTINGS } from '@/lib/services/settings'
-import { Lead } from '@/lib/supabase'
+import { Lead } from '@/lib/supabase/client'
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) throw new Error('NEXT_PUBLIC_SUPABASE_URL is required')
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required')

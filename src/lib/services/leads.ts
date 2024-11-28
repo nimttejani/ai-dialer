@@ -1,5 +1,5 @@
-import { supabase } from '../supabase'
-import type { Lead } from '../supabase'
+import { supabase } from '@/lib/supabase/client';
+import type { Lead } from '@/lib/supabase/client';
 
 export type LeadStatus = "pending" | "calling" | "no_answer" | "scheduled" | "not_interested";
 
