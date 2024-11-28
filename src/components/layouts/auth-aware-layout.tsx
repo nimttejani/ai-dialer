@@ -26,14 +26,19 @@ export function AuthAwareLayout({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    // First, check the initial session
+    // First, check the initial session using getUser for better security
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setAuthenticated(!!session);
+      console.log('Starting auth check...');
+      const { data: { user }, error } = await supabase.auth.getUser();
+      console.log('Auth check result:', { hasUser: !!user, error });
+      const isAuthenticated = !!user;
+      setAuthenticated(isAuthenticated);
       
-      if (!session && pathname !== "/login") {
+      if (!isAuthenticated && pathname !== "/login") {
+        console.log('Not authenticated, redirecting to login...');
         router.push("/login");
       }
+      console.log('Setting loading to false');
       setLoading(false);
     };
 
@@ -43,10 +48,12 @@ export function AuthAwareLayout({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', { event, hasSession: !!session });
       const isAuthenticated = !!session;
       setAuthenticated(isAuthenticated);
 
       if (!isAuthenticated && pathname !== "/login") {
+        console.log('Session ended, redirecting to login...');
         router.push("/login");
       }
     });
