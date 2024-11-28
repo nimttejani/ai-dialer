@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { Database } from '@/lib/database.types'
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -17,13 +16,6 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         },
       }
     )
-
-    // Verify authentication
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Get id from params - properly awaited in Next.js 15
     const { id } = await Promise.resolve(params)
@@ -61,13 +53,6 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
         },
       }
     )
-
-    // Verify authentication
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Get id from params - properly awaited in Next.js 15
     const { id } = await Promise.resolve(params)
