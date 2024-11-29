@@ -44,14 +44,24 @@ export async function fetchPendingLeads(maxCallsBatch: number, retryInterval: nu
   const supabase = createServiceClient()
   
   try {
-    const { data: leads, error } = await supabase
+    const query = supabase
       .from('leads')
       .select('*')
       .eq('status', 'pending')
-      .or(`last_called_at.is.null,last_called_at.lt.${new Date(Date.now() - retryInterval * 60 * 60 * 1000).toISOString()}`)
+      .or(`last_called_at.is.null,last_called_at.lt.${new Date(Date.now() - retryInterval * 60 * 1000).toISOString()}`)
       .lt('call_attempts', maxAttempts)
       .order('last_called_at', { ascending: true, nullsFirst: true })
-      .limit(maxCallsBatch)
+      .limit(maxCallsBatch);
+
+    console.log('Fetching pending leads with conditions:', {
+      status: 'pending',
+      retryIntervalMinutes: retryInterval,
+      maxAttempts,
+      maxCallsBatch,
+      retryTime: new Date(Date.now() - retryInterval * 60 * 1000).toISOString()
+    });
+
+    const { data: leads, error } = await query;
 
     if (error) throw error
     return { success: true, leads }
