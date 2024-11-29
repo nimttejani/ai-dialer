@@ -1,9 +1,16 @@
-import { supabase } from '@/lib/supabase/client';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { supabase as defaultClient } from '@/lib/supabase/client';
 import type { Lead } from '@/lib/supabase/types';
 
 export type LeadStatus = "pending" | "calling" | "no_answer" | "scheduled" | "not_interested";
 
-export const leadsService = {
+export class LeadsService {
+  private supabase: SupabaseClient;
+
+  constructor(supabaseClient: SupabaseClient = defaultClient) {
+    this.supabase = supabaseClient;
+  }
+
   async getLeads(
     options: {
       sortBy?: { column: keyof Lead | null; ascending: boolean };
@@ -14,14 +21,14 @@ export const leadsService = {
     const { sortBy, page, pageSize } = options;
     
     try {
-      let query = supabase
+      let query = this.supabase
         .from('leads')
         .select('*', { count: 'exact' });
 
       // Only apply sorting if we have a valid column
       if (sortBy?.column) {
         query = query.order(sortBy.column, {
-          ascending: sortBy.ascending,
+          ascending: sortBy.ascending
         });
       } else {
         // Default sort by created_at desc if no sort specified
@@ -30,201 +37,152 @@ export const leadsService = {
 
       // Only apply pagination if both page and pageSize are provided
       if (typeof page === 'number' && typeof pageSize === 'number') {
-        const from = (page - 1) * pageSize;
-        const to = from + pageSize - 1;
-        query = query.range(from, to);
+        const start = page * pageSize;
+        query = query.range(start, start + pageSize - 1);
       }
-      
+
       const { data, error, count } = await query;
 
       if (error) {
         console.error('Error fetching leads:', error);
-        return { 
-          data: null, 
-          error: { 
-            message: 'Failed to fetch leads',
-            details: error 
-          }, 
-          count: 0 
+        return {
+          data: null,
+          error: {
+            message: error.message || 'Failed to fetch leads',
+            details: error
+          },
+          count: 0
         };
       }
 
       return {
         data,
         error: null,
-        count: count || 0,
+        count: count || 0
       };
     } catch (error) {
-      console.error('Unexpected error in getLeads:', error);
-      return { 
-        data: null, 
-        error: { 
-          message: 'Unexpected error occurred',
-          details: error instanceof Error ? error.message : String(error)
-        }, 
-        count: 0 
+      console.error('Error fetching leads:', error);
+      return {
+        data: null,
+        error: {
+          message: error instanceof Error ? error.message : 'An unexpected error occurred',
+          details: error
+        },
+        count: 0
       };
     }
-  },
+  }
 
   async updateLead(id: string, updates: Partial<Lead>): Promise<{ success: boolean; data?: Lead | null; error?: any }> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await this.supabase
         .from('leads')
         .update(updates)
         .eq('id', id)
         .select()
-        .single()
+        .single();
 
-      if (error) {
-        console.error('Error updating lead:', error);
-        return { 
-          success: false, 
-          error: { 
-            message: 'Failed to update lead',
-            details: error 
-          } 
-        };
-      }
+      if (error) throw error;
 
-      return { success: true, data }
+      return {
+        success: true,
+        data
+      };
     } catch (error) {
-      console.error('Unexpected error in updateLead:', error);
-      return { 
-        success: false, 
-        error: { 
-          message: 'Unexpected error occurred',
-          details: error instanceof Error ? error.message : String(error)
-        } 
+      console.error('Error updating lead:', error);
+      return {
+        success: false,
+        error
       };
     }
-  },
+  }
 
   async deleteLead(id: string): Promise<{ success: boolean; error?: any }> {
     try {
-      const { error } = await supabase
+      const { error } = await this.supabase
         .from('leads')
         .delete()
-        .eq('id', id)
+        .eq('id', id);
 
-      if (error) {
-        console.error('Error deleting lead:', error);
-        return { 
-          success: false, 
-          error: { 
-            message: 'Failed to delete lead',
-            details: error 
-          } 
-        };
-      }
+      if (error) throw error;
 
-      return { success: true }
+      return {
+        success: true
+      };
     } catch (error) {
-      console.error('Unexpected error in deleteLead:', error);
-      return { 
-        success: false, 
-        error: { 
-          message: 'Unexpected error occurred',
-          details: error instanceof Error ? error.message : String(error)
-        } 
+      console.error('Error deleting lead:', error);
+      return {
+        success: false,
+        error
       };
     }
-  },
+  }
 
   async createLead(lead: Omit<Lead, 'id' | 'created_at' | 'updated_at'>): Promise<{ data: Lead | null; error?: any }> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await this.supabase
         .from('leads')
         .insert([lead])
         .select()
-        .single()
+        .single();
 
-      if (error) {
-        console.error('Error creating lead:', error);
-        return { 
-          data: null, 
-          error: { 
-            message: 'Failed to create lead',
-            details: error 
-          } 
-        };
-      }
+      if (error) throw error;
 
-      return { data }
+      return {
+        data
+      };
     } catch (error) {
-      console.error('Unexpected error in createLead:', error);
-      return { 
-        data: null, 
-        error: { 
-          message: 'Unexpected error occurred',
-          details: error instanceof Error ? error.message : String(error)
-        } 
+      console.error('Error creating lead:', error);
+      return {
+        data: null,
+        error
       };
     }
-  },
+  }
 
   async createLeads(leads: Omit<Lead, 'id' | 'created_at' | 'updated_at'>[]): Promise<{ success: boolean; error?: any }> {
     try {
-      const { error } = await supabase
+      const { error } = await this.supabase
         .from('leads')
-        .insert(leads)
+        .insert(leads);
 
-      if (error) {
-        console.error('Error creating leads:', error);
-        return { 
-          success: false, 
-          error: { 
-            message: 'Failed to create leads',
-            details: error 
-          } 
-        };
-      }
+      if (error) throw error;
 
-      return { success: true }
+      return {
+        success: true
+      };
     } catch (error) {
-      console.error('Unexpected error in createLeads:', error);
-      return { 
-        success: false, 
-        error: { 
-          message: 'Unexpected error occurred',
-          details: error instanceof Error ? error.message : String(error)
-        } 
+      console.error('Error creating leads:', error);
+      return {
+        success: false,
+        error
       };
     }
-  },
+  }
 
-  async updateLeadStatus(ids: string[], status: Lead['status']) {
+  async updateLeadStatus(ids: string[], status: Lead['status']): Promise<{ success: boolean; data?: Lead[] | null; error?: any }> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await this.supabase
         .from('leads')
         .update({ status, updated_at: new Date().toISOString() })
         .in('id', ids)
         .select();
 
-      if (error) {
-        console.error('Error updating lead status:', error);
-        return { 
-          success: false, 
-          error: { 
-            message: 'Failed to update lead status',
-            details: error 
-          } 
-        };
-      }
+      if (error) throw error;
 
       return {
         success: true,
-        data,
+        data
       };
     } catch (error) {
-      console.error('Unexpected error in updateLeadStatus:', error);
-      return { 
-        success: false, 
-        error: { 
-          message: 'Unexpected error occurred',
-          details: error instanceof Error ? error.message : String(error)
-        } 
+      console.error('Error updating lead status:', error);
+      return {
+        success: false,
+        error
       };
     }
-  },
+  }
 }
+
+// Export a singleton instance with the default client for client-side use
+export const leadsService = new LeadsService();

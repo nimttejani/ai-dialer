@@ -1,6 +1,7 @@
 import { Suspense } from "react";
-import { leadsService } from "@/lib/services/leads";
-import { settingsService } from "@/lib/services/settings";
+import { createRouteHandlerClient } from "@/lib/supabase/server";
+import { SettingsService } from "@/lib/services/settings";
+import { LeadsService } from "@/lib/services/leads";
 import { ClientAutomationControl } from "@/components/client-automation-control";
 import { ClientLeadTable } from "@/components/client-lead-table";
 import { ClientHeader } from "@/components/client-header";
@@ -44,6 +45,10 @@ function LeadTableSkeleton() {
 }
 
 async function PageData() {
+  const supabase = await createRouteHandlerClient();
+  const settingsService = new SettingsService(supabase);
+  const leadsService = new LeadsService(supabase);
+  
   const [leadsResult, settingsResult] = await Promise.all([
     leadsService.getLeads(),
     settingsService.getAutomationSettings(),

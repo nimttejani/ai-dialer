@@ -14,11 +14,12 @@ export function ClientAutomationControl({
   const queryClient = useQueryClient();
 
   // Use React Query for settings management
-  const { data: settings = initialSettings } = useQuery({
+  const { data: settings, isLoading } = useQuery({
     queryKey: ['automation-settings'],
     queryFn: settingsService.getAutomationSettings,
     initialData: initialSettings,
-    staleTime: 30000,
+    refetchOnMount: true,
+    staleTime: 0, // Always fetch fresh data
   });
 
   // Mutation for updating settings

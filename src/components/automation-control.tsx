@@ -19,22 +19,25 @@ export function AutomationControl({
   initialSettings: AutomationSettings | null;
   onSettingsUpdate?: (enabled: boolean) => void;
 }) {
-  const [enabled, setEnabled] = useState(initialSettings?.automation_enabled || false)
-  const [initialLoading, setInitialLoading] = useState(true)
+  const [enabled, setEnabled] = useState(initialSettings?.automation_enabled ?? false)
   const [isUpdating, setIsUpdating] = useState(false)
   const { toast } = useToast()
+
+  // Update local state when initialSettings changes
+  useEffect(() => {
+    if (initialSettings !== null) {
+      setEnabled(initialSettings.automation_enabled)
+    }
+  }, [initialSettings])
 
   useEffect(() => {
     const fetchSettings = async () => {
       const settings = await settingsService.getAutomationSettings()
       setEnabled(settings.automation_enabled)
-      setInitialLoading(false)
     }
 
     if (!initialSettings) {
       fetchSettings()
-    } else {
-      setInitialLoading(false)
     }
   }, [initialSettings])
 
@@ -74,7 +77,7 @@ export function AutomationControl({
     }
   }
 
-  if (initialLoading) {
+  if (!initialSettings) {
     return (
       <div className="flex items-center justify-between p-4 bg-card rounded-lg border shadow-sm mb-4">
         <div className="space-y-2">

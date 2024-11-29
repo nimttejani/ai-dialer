@@ -56,9 +56,14 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
   const { pageSize, setPageSize } = usePageSize();
 
   const fetchLeads = async (showSuccessToast = false) => {
-    // Skip the initial fetch since we already have data
+    // Skip the initial fetch since we already have data from server
     if (isFirstRender.current) {
       isFirstRender.current = false;
+      return;
+    }
+
+    // Don't fetch if we're on page 1 and have initialLeads
+    if (currentPage === 1 && rawLeads === initialLeads && !sortState.column) {
       return;
     }
 
@@ -73,7 +78,6 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
       });
 
       if (error) {
-        console.error("Error fetching leads:", error);
         toast({
           title: "Error fetching leads",
           description: error.message || "An unexpected error occurred while fetching leads",
@@ -95,29 +99,20 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
         }
       }
     } catch (error) {
-      console.error("Unexpected error in fetchLeads:", error);
+      const message = error instanceof Error ? error.message : "An unexpected error occurred";
       toast({
         title: "Error",
-        description: "An unexpected error occurred while fetching leads",
+        description: message,
         variant: "destructive",
       });
     }
   };
 
-  // Fetch when pagination or sort changes
+  // Only fetch when pagination, sorting, or explicit refresh
   useEffect(() => {
-    // Skip the initial fetch since we already have data
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-
-    const timeoutId = setTimeout(() => {
+    if (!isFirstRender.current) {
       fetchLeads(false);
-    }, 100); // Add small debounce
-
-    return () => clearTimeout(timeoutId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    }
   }, [currentPage, pageSize, sortState]);
 
   const handleManualRefresh = () => {
