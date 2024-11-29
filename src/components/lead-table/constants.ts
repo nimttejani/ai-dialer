@@ -15,7 +15,7 @@ export const STATUS_STYLES = {
   not_interested: "bg-red-100 text-red-800 hover:bg-red-200"
 } as const;
 
-export const NON_EDITABLE_FIELDS = ["call_attempts", "last_called_at", "created_at", "updated_at"];
+export const NON_EDITABLE_FIELDS = ["last_called_at", "created_at", "updated_at"];
 
 // Local Storage Keys
 export const STORAGE_KEYS = {
