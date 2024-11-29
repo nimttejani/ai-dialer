@@ -5,7 +5,7 @@ import { z } from 'zod';
 // Schema for the Vapi tool call request
 const requestSchema = z.object({
   message: z.object({
-    type: z.literal('tool-calls'),
+    type: z.enum(['tool-calls', 'end-of-call-report']),
     toolCalls: z.array(z.object({
       id: z.string(),
       type: z.literal('function'),
@@ -13,7 +13,11 @@ const requestSchema = z.object({
         name: z.enum(['checkAvailability', 'bookAppointment']),
         arguments: z.record(z.any())
       })
-    }))
+    })).optional(),
+    endedReason: z.string().optional(),
+    transcript: z.string().optional(),
+    summary: z.string().optional(),
+    messages: z.array(z.any()).optional()
   })
 });
 
@@ -64,8 +68,31 @@ export async function POST(request: Request) {
     // Parse and validate request body
     const parsedRequest = requestSchema.parse(requestBody);
     
+    // Handle end-of-call-report
+    if (parsedRequest.message.type === 'end-of-call-report') {
+      // Return 200 OK immediately
+      // TODO: Add async processing of the report here
+      console.log('Received end-of-call report:', JSON.stringify(requestBody, null, 2));
+      return NextResponse.json({}, { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
     // Handle tool calls format
-    const toolCall = parsedRequest.message.toolCalls[0];
+    const toolCall = parsedRequest.message.toolCalls?.[0];
+    if (!toolCall) {
+      return NextResponse.json({
+        results: [{
+          toolCallId: '',
+          result: 'Error: No tool calls found in request'
+        }]
+      }, { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     const functionName = toolCall.function.name;
     const toolCallId = toolCall.id;
 
