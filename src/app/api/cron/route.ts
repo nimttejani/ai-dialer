@@ -16,7 +16,7 @@ async function getAutomationSettings() {
   console.log('Fetching automation settings...');
   try {
     const settings = await settingsService.getAutomationSettings();
-    console.log('Settings retrieved:', settings);
+    // console.log('Settings retrieved:', settings);
     return settings;
   } catch (error) {
     console.error('Error fetching settings:', error);
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
 
     // Get automation settings
     const settings = await getAutomationSettings()
-    console.log('Automation settings:', settings);
+    // console.log('Automation settings:', settings);
 
     if (!settings.automation_enabled) {
       console.log('Automation is disabled, exiting');
