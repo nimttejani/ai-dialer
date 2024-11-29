@@ -14,7 +14,7 @@ export function ClientAutomationControl({
   const queryClient = useQueryClient();
 
   // Use React Query for settings management
-  const { data: settings, isLoading } = useQuery({
+  const { data: settings } = useQuery({
     queryKey: ['automation-settings'],
     queryFn: settingsService.getAutomationSettings,
     initialData: initialSettings,
