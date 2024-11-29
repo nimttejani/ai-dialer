@@ -1,29 +1,15 @@
 import { NextResponse, NextRequest } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { SettingsService, DEFAULT_SETTINGS } from '@/lib/services/settings'
 import { Lead } from '@/lib/supabase/client'
+import { createServiceClient, fetchPendingLeads, updateLeadWithCallAttempt } from '@/lib/supabase/service'
 
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL) throw new Error('NEXT_PUBLIC_SUPABASE_URL is required')
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required')
 if (!process.env.VAPI_API_KEY) throw new Error('VAPI_API_KEY is required')
 if (!process.env.VAPI_ASSISTANT_ID) throw new Error('VAPI_ASSISTANT_ID is required')
 if (!process.env.VAPI_PHONE_NUMBER_ID) throw new Error('VAPI_PHONE_NUMBER_ID is required')
 if (!process.env.CRON_SECRET) throw new Error('CRON_SECRET is required')
 
-// Create a Supabase client with the service role key to bypass RLS
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-)
-
 // Create a settings service instance with the service role client
-const settingsService = new SettingsService(supabase)
+const settingsService = new SettingsService(createServiceClient())
 
 // Fetch automation settings from Supabase
 async function getAutomationSettings() {
@@ -102,22 +88,15 @@ export async function GET(request: NextRequest) {
 
     // Fetch leads to process
     console.log('Fetching pending leads...');
-    const { data: leads, error: fetchError } = await supabase
-      .from('leads')
-      .select('*')
-      .eq('status', 'pending')
-      .or(`last_called_at.is.null,last_called_at.lt.${new Date(Date.now() - retryInterval * 60 * 60 * 1000).toISOString()}`)
-      .lt('call_attempts', maxAttempts)
-      .order('last_called_at', { ascending: true, nullsFirst: true })
-      .limit(maxCallsBatch)
+    const { success, leads, error: fetchError } = await fetchPendingLeads(maxCallsBatch, retryInterval, maxAttempts)
 
-    if (fetchError) {
+    if (!success || !leads) {
       console.log('Error fetching leads:', fetchError);
       return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 })
     }
 
     console.log(`Found ${leads?.length || 0} leads to process`);
-    if (!leads || leads.length === 0) {
+    if (leads.length === 0) {
       return NextResponse.json({ message: 'No leads to process' })
     }
 
@@ -129,17 +108,10 @@ export async function GET(request: NextRequest) {
           // Start VAPI call
           const callResult = await initiateVapiCall(lead)
 
-          // Update lead with call attempt (status will be updated by webhook)
-          const { error: updateError } = await supabase
-            .from('leads')
-            .update({
-              call_attempts: lead.call_attempts + 1,
-              last_called_at: new Date().toISOString(),
-              status: 'calling'
-            })
-            .eq('id', lead.id)
+          // Update lead with call attempt
+          const { success, error: updateError } = await updateLeadWithCallAttempt(lead.id, lead.call_attempts)
 
-          if (updateError) {
+          if (!success) {
             console.log('Error updating lead:', updateError)
             return { lead, success: false, error: updateError }
           }

@@ -38,3 +38,47 @@ export async function updateCallStatus(phoneNumber: string, status: Database['pu
     return { success: false, error }
   }
 }
+
+// Fetch pending leads that need to be called
+export async function fetchPendingLeads(maxCallsBatch: number, retryInterval: number, maxAttempts: number) {
+  const supabase = createServiceClient()
+  
+  try {
+    const { data: leads, error } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('status', 'pending')
+      .or(`last_called_at.is.null,last_called_at.lt.${new Date(Date.now() - retryInterval * 60 * 60 * 1000).toISOString()}`)
+      .lt('call_attempts', maxAttempts)
+      .order('last_called_at', { ascending: true, nullsFirst: true })
+      .limit(maxCallsBatch)
+
+    if (error) throw error
+    return { success: true, leads }
+  } catch (error) {
+    console.error('Error fetching pending leads:', error)
+    return { success: false, error }
+  }
+}
+
+// Update lead with new call attempt
+export async function updateLeadWithCallAttempt(leadId: string, currentAttempts: number) {
+  const supabase = createServiceClient()
+  
+  try {
+    const { error } = await supabase
+      .from('leads')
+      .update({
+        call_attempts: currentAttempts + 1,
+        last_called_at: new Date().toISOString(),
+        status: 'calling'
+      })
+      .eq('id', leadId)
+
+    if (error) throw error
+    return { success: true }
+  } catch (error) {
+    console.error('Error updating lead with call attempt:', error)
+    return { success: false, error }
+  }
+}
