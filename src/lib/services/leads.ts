@@ -37,7 +37,8 @@ export class LeadsService {
 
       // Only apply pagination if both page and pageSize are provided
       if (typeof page === 'number' && typeof pageSize === 'number') {
-        const start = page * pageSize;
+        // Convert from 1-based to 0-based page number
+        const start = (page - 1) * pageSize;
         query = query.range(start, start + pageSize - 1);
       }
 

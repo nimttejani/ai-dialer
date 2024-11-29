@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { Table } from "@/components/ui/table";
@@ -39,7 +39,6 @@ import {
 import { Pagination } from "./pagination";
 
 export function LeadTable({ initialLeads }: LeadTableProps) {
-  const isFirstRender = useRef(true);
   const [rawLeads, setRawLeads] = useState<Lead[]>(initialLeads);
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -55,15 +54,17 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
   const { csvPreviewData, showCSVPreview, fileInputRef, handleFileUpload, handleCSVImport, setShowCSVPreview } = useCSVImport(() => fetchLeads(false));
   const { pageSize, setPageSize } = usePageSize();
 
-  const fetchLeads = async (showSuccessToast = false) => {
-    // Skip the initial fetch since we already have data from server
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+  const fetchLeads = async (showSuccessToast = false, forceRefresh = false) => {
+    console.log('fetchLeads called:', {
+      currentPage,
+      pageSize,
+      hasSort: !!sortState.column,
+      forceRefresh
+    });
 
-    // Don't fetch if we're on page 1 and have initialLeads
-    if (currentPage === 1 && rawLeads === initialLeads && !sortState.column) {
+    // Only skip fetch if we're not forcing a refresh and we're on page 1 with initial data
+    if (!forceRefresh && currentPage === 1 && rawLeads === initialLeads && !sortState.column) {
+      console.log('Skipping fetch - using initial data');
       return;
     }
 
@@ -108,15 +109,14 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
     }
   };
 
-  // Only fetch when pagination, sorting, or explicit refresh
+  // Only fetch when pagination, sorting changes
   useEffect(() => {
-    if (!isFirstRender.current) {
-      fetchLeads(false);
-    }
+    fetchLeads(false, false);
   }, [currentPage, pageSize, sortState]);
 
   const handleManualRefresh = () => {
-    fetchLeads(true);
+    // Force refresh when manually triggered
+    fetchLeads(true, true);
   };
 
   const handleUpdateLead = async (id: string, updates: Partial<Lead>) => {
