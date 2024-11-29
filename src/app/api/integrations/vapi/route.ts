@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAvailability, createBooking } from '@/lib/cal';
+import { updateCallStatus } from '@/lib/supabase/service';
 import { z } from 'zod';
 
 // Schema for the Vapi tool call request
@@ -71,8 +72,23 @@ export async function POST(request: Request) {
     // Handle end-of-call-report
     if (parsedRequest.message.type === 'end-of-call-report') {
       // Return 200 OK immediately
-      // TODO: Add async processing of the report here
-      console.log('Received end-of-call report:', JSON.stringify(requestBody, null, 2));
+      // Process the report asynchronously
+      const phoneNumber = requestBody.call?.to || requestBody.call?.from;
+      if (phoneNumber) {
+        const status = requestBody.message.analysis?.structuredData?.['Lead Status'];
+        
+        // Only update if we got a valid status
+        if (status === 'no_answer' || status === 'scheduled' || status === 'not_interested') {
+          // Fire and forget - we don't wait for this to complete
+          updateCallStatus(phoneNumber, status)
+            .catch(error => console.error('Error processing end-of-call report:', error));
+        } else {
+          console.warn('Invalid or missing Lead Status in end-of-call report:', status);
+        }
+      } else {
+        console.warn('No phone number found in end-of-call report:', JSON.stringify(requestBody, null, 2));
+      }
+      
       return NextResponse.json({}, { 
         status: 200,
         headers: { 'Content-Type': 'application/json' }
