@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDateTime } from "@/lib/utils";
-import { Lead } from "@/lib/supabase";
+import type { Lead } from "@/lib/supabase/types";
 import { STATUS_STYLES, NON_EDITABLE_FIELDS } from "./constants";
 import { EditingCell } from "./types";
 

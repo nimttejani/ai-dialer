@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { SettingsService, DEFAULT_SETTINGS } from '@/lib/services/settings'
-import { Lead } from '@/lib/supabase/client'
+import type { Lead } from '@/lib/supabase/types'
 import { createServiceClient, fetchPendingLeads, updateLeadWithCallAttempt } from '@/lib/supabase/service'
 
 if (!process.env.VAPI_API_KEY) throw new Error('VAPI_API_KEY is required')

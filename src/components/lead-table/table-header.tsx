@@ -5,7 +5,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ArrowUp, ArrowDown } from "lucide-react";
-import { Lead } from "@/lib/supabase";
+import type { Lead } from "@/lib/supabase/types";
 import { FIELD_MAPPINGS } from "./constants";
 import { SortState } from "./types";
 

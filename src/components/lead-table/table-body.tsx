@@ -4,7 +4,7 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
-import { Lead } from "@/lib/supabase";
+import type { Lead } from "@/lib/supabase/types";
 import { FIELD_MAPPINGS } from "./constants";
 import { CellRenderer } from "./cell-renderer";
 import { EditingCell } from "./types";

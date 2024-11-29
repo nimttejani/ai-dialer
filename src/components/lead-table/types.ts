@@ -1,4 +1,4 @@
-import { Lead } from "@/lib/supabase";
+import type { Lead } from "@/lib/supabase/types";
 
 export interface CSVPreviewData {
   company_name: string;

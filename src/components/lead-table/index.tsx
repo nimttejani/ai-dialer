@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Lead } from "@/lib/supabase";
+import type { Lead } from "@/lib/supabase/types";
 import { leadsService } from "@/lib/services/leads";
 
 // Import our new components and hooks

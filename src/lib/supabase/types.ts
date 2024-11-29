@@ -58,3 +58,6 @@ export interface Database {
     }
   }
 }
+
+// Convenience type for Lead table rows
+export type Lead = Database['public']['Tables']['leads']['Row']

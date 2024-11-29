@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Lead } from "@/lib/supabase";
+import type { Lead } from "@/lib/supabase/types";
 import { SortState } from "../types";
 
 export function useLeadSort(initialSortState?: SortState) {
