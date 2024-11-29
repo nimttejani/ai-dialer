@@ -40,7 +40,7 @@ Here's a complete example of a route handler following Next.js 15 best practices
 import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
-import { Database } from '@/lib/database.types'
+import { Database } from '@/lib/supabase/types'
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {

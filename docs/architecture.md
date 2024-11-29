@@ -28,9 +28,12 @@ The AI Dialer is a proof-of-concept system designed to demonstrate automated out
     ├── services/
     │   ├── leads.ts       # Lead management operations
     │   └── settings.ts    # System settings and automation config
+    ├── supabase/
+    │   ├── client.ts      # Browser-side Supabase client
+    │   ├── server.ts      # Server-side Supabase client
+    │   ├── service.ts     # Service-role operations (bypasses RLS)
+    │   └── types.ts       # Supabase database type definitions
     ├── cal.ts            # Cal.com API integration
-    ├── database.types.ts # Supabase database type definitions
-    ├── supabase.ts       # Supabase client configuration
     ├── types.ts          # Shared type definitions
     └── utils.ts          # Shared utilities
     ```
