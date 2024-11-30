@@ -68,6 +68,7 @@ async function extractPrompts(configPath) {
             },
             firstMessage: `@[${PATHS.firstMessage}]`,
             endCallMessage: `@[${PATHS.endCallMessage}]`,
+            serverUrl: '${BASE_URL}/api/integrations/vapi',
             analysisPlan: {
                 summaryPrompt: `@[${PATHS.summaryPrompt}]`,
                 successEvaluationPrompt: `@[${PATHS.successEvaluation}]`,
@@ -89,7 +90,7 @@ async function extractPrompts(configPath) {
     }
 }
 
-async function reconstructConfig(referencedConfigPath) {
+async function reconstructConfig(referencedConfigPath, baseUrl) {
     try {
         // Read the referenced config
         const configData = JSON.parse(await fs.readFile(referencedConfigPath, 'utf8'));
@@ -117,6 +118,7 @@ async function reconstructConfig(referencedConfigPath) {
             },
             firstMessage: await readFileContent(configData.firstMessage),
             endCallMessage: await readFileContent(configData.endCallMessage),
+            serverUrl: baseUrl ? configData.serverUrl.replace('${BASE_URL}', baseUrl) : configData.serverUrl,
             analysisPlan: {
                 summaryPrompt: await readFileContent(configData.analysisPlan.summaryPrompt),
                 successEvaluationPrompt: await readFileContent(configData.analysisPlan.successEvaluationPrompt),

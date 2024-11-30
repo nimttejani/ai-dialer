@@ -6,11 +6,14 @@ const path = require('path');
 
 const command = process.argv[2];
 const configPath = process.argv[3];
+const baseUrl = process.argv[4];
 
 if (!command || !configPath) {
     console.log('Usage:');
-    console.log('  Extract prompts:   node manage-prompts.js extract <config-path>');
-    console.log('  Reconstruct config: node manage-prompts.js reconstruct <referenced-config-path>');
+    console.log('  Extract prompts:    node manage-prompts.js extract <config-path>');
+    console.log('  Reconstruct config: node manage-prompts.js reconstruct <referenced-config-path> [base-url]');
+    console.log('\nExample:');
+    console.log('  node manage-prompts.js reconstruct config.referenced.json https://your-domain.com');
     process.exit(1);
 }
 
@@ -24,9 +27,12 @@ async function main() {
             console.log('Created referenced config at config.referenced.json');
         }
     } else if (command === 'reconstruct') {
-        const success = await reconstructConfig(absolutePath);
+        const success = await reconstructConfig(absolutePath, baseUrl);
         if (success) {
             console.log('Successfully reconstructed config at config.reconstructed.json');
+            if (!baseUrl) {
+                console.log('Warning: No base URL provided. The serverUrl will contain an unreplaced ${BASE_URL} placeholder');
+            }
         }
     } else {
         console.log('Invalid command. Use "extract" or "reconstruct"');
