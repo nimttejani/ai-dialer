@@ -1,8 +1,9 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { SettingsService, DEFAULT_SETTINGS } from '@/lib/services/settings'
+import { LeadsService } from '@/lib/services/leads'
 import { CallLogService } from '@/lib/services/call-logs'
 import type { Lead } from '@/lib/supabase/types'
-import { createServiceClient, fetchPendingLeads, updateLeadWithCallAttempt } from '@/lib/supabase/service'
+import { createServiceClient } from '@/lib/supabase/service'
 
 if (!process.env.VAPI_API_KEY) throw new Error('VAPI_API_KEY is required')
 if (!process.env.VAPI_ASSISTANT_ID) throw new Error('VAPI_ASSISTANT_ID is required')
@@ -10,8 +11,10 @@ if (!process.env.VAPI_PHONE_NUMBER_ID) throw new Error('VAPI_PHONE_NUMBER_ID is 
 if (!process.env.CRON_SECRET) throw new Error('CRON_SECRET is required')
 
 // Create service instances with the service role client
-const settingsService = new SettingsService(createServiceClient())
-const callLogService = new CallLogService(createServiceClient())
+const serviceClient = createServiceClient()
+const settingsService = new SettingsService(serviceClient)
+const leadsService = new LeadsService(serviceClient)
+const callLogService = new CallLogService(serviceClient)
 
 // Fetch automation settings from Supabase
 async function getAutomationSettings() {
@@ -90,7 +93,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch leads to process
     console.log('Fetching pending leads...');
-    const { success, leads, error: fetchError } = await fetchPendingLeads(maxCallsBatch, retryInterval, maxAttempts)
+    const { success, leads, error: fetchError } = await leadsService.fetchPendingLeads(maxCallsBatch, retryInterval, maxAttempts)
 
     if (!success || !leads) {
       console.log('Error fetching leads:', fetchError);
@@ -117,7 +120,7 @@ export async function GET(request: NextRequest) {
           }
 
           // Update lead with call attempt
-          const { success, error: updateError } = await updateLeadWithCallAttempt(lead.id, lead.call_attempts)
+          const { success, error: updateError } = await leadsService.updateLeadWithCallAttempt(lead.id, lead.call_attempts)
 
           if (!success) {
             console.log('Error updating lead:', updateError)

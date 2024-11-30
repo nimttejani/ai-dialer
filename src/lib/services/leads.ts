@@ -185,6 +185,89 @@ export class LeadsService {
       };
     }
   }
+
+  // Update call status by phone number
+  async updateCallStatus(phoneNumber: string, status: Lead['status']): Promise<{ success: boolean; error?: any }> {
+    try {
+      const { error } = await this.supabase
+        .from('leads')
+        .update({ 
+          status,
+          last_called_at: new Date().toISOString()
+        })
+        .eq('phone', phoneNumber)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating call status:', error);
+      return { success: false, error };
+    }
+  }
+
+  // Fetch pending leads that need to be called
+  async fetchPendingLeads(maxCallsBatch: number, retryInterval: number, maxAttempts: number): Promise<{ 
+    success: boolean; 
+    leads?: Lead[] | null; 
+    error?: any 
+  }> {
+    try {
+      const query = this.supabase
+        .from('leads')
+        .select('*')
+        .eq('status', 'pending')
+        .or(`last_called_at.is.null,last_called_at.lt.${new Date(Date.now() - retryInterval * 60 * 1000).toISOString()}`)
+        .lt('call_attempts', maxAttempts)
+        .order('last_called_at', { ascending: true, nullsFirst: true })
+        .limit(maxCallsBatch);
+
+      console.log('Fetching pending leads with conditions:', {
+        status: 'pending',
+        retryIntervalMinutes: retryInterval,
+        maxAttempts,
+        maxCallsBatch,
+        retryTime: new Date(Date.now() - retryInterval * 60 * 1000).toISOString()
+      });
+
+      const { data: leads, error } = await query;
+
+      if (error) throw error;
+
+      return {
+        success: true,
+        leads
+      };
+    } catch (error) {
+      console.error('Error fetching pending leads:', error);
+      return {
+        success: false,
+        error
+      };
+    }
+  }
+
+  // Update lead with new call attempt
+  async updateLeadWithCallAttempt(leadId: string, currentAttempts: number): Promise<{ success: boolean; error?: any }> {
+    try {
+      const { error } = await this.supabase
+        .from('leads')
+        .update({ 
+          call_attempts: currentAttempts + 1,
+          last_called_at: new Date().toISOString(),
+          status: 'calling'
+        })
+        .eq('id', leadId);
+
+      if (error) throw error;
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating lead call attempt:', error);
+      return { success: false, error };
+    }
+  }
 }
 
 // Export a singleton instance with the default client for client-side use
