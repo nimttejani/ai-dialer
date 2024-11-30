@@ -95,7 +95,7 @@ export async function POST(request: Request) {
       }
 
       // Get the status from the report
-      const status = requestBody.message.analysis?.structuredData?.['Lead Status'] ?? 'not_interested'; // TODO: default to error status here
+      const status = requestBody.message.analysis?.structuredData?.['outcome'] ?? 'error';
       
       // Only update if we got a valid status and have a lead_id
       if (updatedCallLog.lead_id && (status === 'no_answer' || status === 'scheduled' || status === 'not_interested')) {

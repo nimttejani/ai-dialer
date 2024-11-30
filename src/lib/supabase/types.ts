@@ -7,7 +7,7 @@ export interface Database {
           company_name: string
           phone: string
           email: string
-          status: 'pending' | 'calling' | 'no_answer' | 'scheduled' | 'not_interested'
+          status: 'pending' | 'calling' | 'no_answer' | 'scheduled' | 'not_interested' | 'error'
           call_attempts: number
           last_called_at: string | null
           created_at: string

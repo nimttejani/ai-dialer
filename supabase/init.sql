@@ -7,7 +7,8 @@ create type lead_status as enum (
   'calling',
   'no_answer',
   'scheduled',
-  'not_interested'
+  'not_interested',
+  'error'
 );
 
 -- Create updated_at trigger function (used by multiple tables)
