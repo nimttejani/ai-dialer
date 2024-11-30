@@ -11,8 +11,8 @@ export type AutomationSettings = {
 export const DEFAULT_SETTINGS: AutomationSettings = {
   automation_enabled: false,
   max_calls_batch: 10,
-  retry_interval: 4,
-  max_attempts: 2
+  retry_interval: 15,
+  max_attempts: 3
 }
 
 class SettingsService {

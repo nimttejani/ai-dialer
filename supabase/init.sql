@@ -42,8 +42,8 @@ create trigger update_leads_updated_at
 create table settings (
   id uuid primary key default gen_random_uuid(),
   automation_enabled boolean default false,
-  max_calls_batch integer default 5,
-  retry_interval integer default 4,
+  max_calls_batch integer default 10,
+  retry_interval integer default 15,
   max_attempts integer default 3,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
