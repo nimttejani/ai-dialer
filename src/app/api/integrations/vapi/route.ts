@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAvailability, createBooking } from '@/lib/cal';
-import { updateCallStatus } from '@/lib/supabase/service';
 import { CallLogService } from '@/lib/services/call-logs';
+import { LeadsService } from '@/lib/services/leads';
 import { createServiceClient } from '@/lib/supabase/service';
 import { z } from 'zod';
 
@@ -20,7 +20,10 @@ const requestSchema = z.object({
     endedReason: z.string().optional(),
     transcript: z.string().optional(),
     summary: z.string().optional(),
-    messages: z.array(z.any()).optional()
+    messages: z.array(z.any()).optional(),
+    call: z.object({
+      id: z.string()
+    }).optional()
   })
 });
 
@@ -72,32 +75,36 @@ export async function POST(request: Request) {
     const parsedRequest = requestSchema.parse(requestBody);
     
     // Create service instances with the service role client
-    const callLogService = new CallLogService(createServiceClient());
+    const supabaseServiceClient = createServiceClient();
+    const callLogService = new CallLogService(supabaseServiceClient);
+    const leadsService = new LeadsService(supabaseServiceClient);
 
     // Handle end-of-call-report
     if (parsedRequest.message.type === 'end-of-call-report') {
-      // Update call log with report asynchronously
-      const callId = requestBody.call?.id;
-      if (callId) {
-        callLogService.updateWithReport(callId, requestBody)
-          .catch(error => console.error('Error updating call log with report:', error));
+      const callId = requestBody.message.call?.id;
+      if (!callId) {
+        console.warn('No call ID found in end-of-call report:', JSON.stringify(requestBody, null, 2));
+        return NextResponse.json({}, { status: 200 });
       }
 
-      // Process lead status update asynchronously
-      const phoneNumber = requestBody.call?.to || requestBody.call?.from;
-      if (phoneNumber) {
-        const status = requestBody.message.analysis?.structuredData?.['Lead Status'];
-        
-        // Only update if we got a valid status
-        if (status === 'no_answer' || status === 'scheduled' || status === 'not_interested') {
-          // Fire and forget - we don't wait for this to complete
-          updateCallStatus(phoneNumber, status)
-            .catch(error => console.error('Error processing end-of-call report:', error));
-        } else {
-          console.warn('Invalid or missing Lead Status in end-of-call report:', status);
+      // Update call log and get the lead_id
+      const { data: updatedCallLog, error: updateError } = await callLogService.updateWithReport(callId, requestBody);
+      if (updateError || !updatedCallLog) {
+        console.error('Error updating call log with report:', updateError);
+        return NextResponse.json({}, { status: 200 });
+      }
+
+      // Get the status from the report
+      const status = requestBody.message.analysis?.structuredData?.['Lead Status'] ?? 'not_interested'; // TODO: default to error status here
+      
+      // Only update if we got a valid status and have a lead_id
+      if (updatedCallLog.lead_id && (status === 'no_answer' || status === 'scheduled' || status === 'not_interested')) {
+        const { success, error: leadUpdateError } = await leadsService.updateLead(updatedCallLog.lead_id, { status });
+        if (!success) {
+          console.error('Error updating lead status:', leadUpdateError);
         }
       } else {
-        console.warn('No phone number found in end-of-call report:', JSON.stringify(requestBody, null, 2));
+        console.warn('Invalid status or missing lead_id. Status:', status, 'Lead ID:', updatedCallLog.lead_id);
       }
       
       return NextResponse.json({}, { 
