@@ -1,0 +1,12 @@
+{
+    "type": "function",
+    "function": {
+      "name": "check_availability",
+      "async": false,
+      "description": "Gets the next available slots to book an appointment"
+    },
+    "server": {
+      "url": "${BASE_URL}/api/integrations/vapi"
+    },
+    "async": false
+  }

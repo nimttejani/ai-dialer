@@ -1,0 +1,48 @@
+{
+    "type": "function",
+    "function": {
+      "name": "book_appointment",
+      "async": false,
+      "description": "Books an appointment",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Name of person to attend appointment",
+            "type": "string"
+          },
+          "email": {
+            "description": "email address of person to attend appointment",
+            "type": "string"
+          },
+          "notes": {
+            "description": "any info that might be useful for the consultant in preparing for the meeting",
+            "type": "string"
+          },
+          "phone": {
+            "description": "contact phone number of person attending appointment",
+            "type": "string"
+          },
+          "company": {
+            "description": "company name of person to attend appointment",
+            "type": "string"
+          },
+          "startTime": {
+            "description": "the preferred time slot in ISO 8601 format",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "company",
+          "phone",
+          "startTime"
+        ]
+      }
+    },
+    "server": {
+      "url": "${BASE_URL}/api/integrations/vapi"
+    },
+    "async": false
+  }
