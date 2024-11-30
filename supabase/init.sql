@@ -39,6 +39,54 @@ create trigger update_leads_updated_at
   for each row 
   execute function update_updated_at_column();
 
+-- Create call_logs table
+create table call_logs (
+  id uuid primary key default uuid_generate_v4(),
+  lead_id uuid not null references leads(id),
+  vapi_call_id text not null unique,
+  initiated_at timestamp with time zone,
+  ended_at timestamp with time zone,
+  ended_reason text,
+  recording_url text,
+  stereo_recording_url text,
+  duration_seconds numeric,
+  cost numeric,
+  initial_response jsonb,
+  report jsonb,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- Create trigger for call_logs updated_at
+create trigger update_call_logs_updated_at 
+  before update on call_logs 
+  for each row 
+  execute function update_updated_at_column();
+
+-- Create indexes for call_logs
+create index idx_call_logs_lead_id on call_logs(lead_id);
+create index idx_call_logs_vapi_call_id on call_logs(vapi_call_id);
+
+-- Enable RLS for call_logs
+alter table call_logs enable row level security;
+
+-- Create RLS policies for call_logs
+create policy "Enable read access for authenticated users" on call_logs
+  for select
+  to authenticated
+  using (true);
+
+create policy "Enable insert access for authenticated users" on call_logs
+  for insert
+  to authenticated
+  with check (true);
+
+create policy "Enable update access for authenticated users" on call_logs
+  for update
+  to authenticated
+  using (true)
+  with check (true);
+
 -- Create settings table
 create table settings (
   id uuid primary key default gen_random_uuid(),
@@ -117,8 +165,3 @@ create policy "Enable delete access for authenticated users" on leads
 create index idx_leads_status on leads(status);
 create index idx_leads_last_called_at on leads(last_called_at);
 create index idx_leads_cal_booking_uid on leads(cal_booking_uid);
-
--- Optional test data (commented out by default)
--- insert into leads (company_name, phone, email) values
---   ('ACME HVAC', '+1234567890', 'contact@acmehvac.com'),
---   ('Cool Air Services', '+1987654321', 'sales@coolair.com');
