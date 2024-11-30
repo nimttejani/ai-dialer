@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getAvailability, createBooking } from '@/lib/cal';
 import { updateCallStatus } from '@/lib/supabase/service';
+import { CallLogService } from '@/lib/services/call-logs';
+import { createServiceClient } from '@/lib/supabase/service';
 import { z } from 'zod';
 
 // Schema for the Vapi tool call request
@@ -69,10 +71,19 @@ export async function POST(request: Request) {
     // Parse and validate request body
     const parsedRequest = requestSchema.parse(requestBody);
     
+    // Create service instances with the service role client
+    const callLogService = new CallLogService(createServiceClient());
+
     // Handle end-of-call-report
     if (parsedRequest.message.type === 'end-of-call-report') {
-      // Return 200 OK immediately
-      // Process the report asynchronously
+      // Update call log with report asynchronously
+      const callId = requestBody.call?.id;
+      if (callId) {
+        callLogService.updateWithReport(callId, requestBody)
+          .catch(error => console.error('Error updating call log with report:', error));
+      }
+
+      // Process lead status update asynchronously
       const phoneNumber = requestBody.call?.to || requestBody.call?.from;
       if (phoneNumber) {
         const status = requestBody.message.analysis?.structuredData?.['Lead Status'];

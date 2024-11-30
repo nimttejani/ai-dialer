@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { SettingsService, DEFAULT_SETTINGS } from '@/lib/services/settings'
+import { CallLogService } from '@/lib/services/call-logs'
 import type { Lead } from '@/lib/supabase/types'
 import { createServiceClient, fetchPendingLeads, updateLeadWithCallAttempt } from '@/lib/supabase/service'
 
@@ -8,8 +9,9 @@ if (!process.env.VAPI_ASSISTANT_ID) throw new Error('VAPI_ASSISTANT_ID is requir
 if (!process.env.VAPI_PHONE_NUMBER_ID) throw new Error('VAPI_PHONE_NUMBER_ID is required')
 if (!process.env.CRON_SECRET) throw new Error('CRON_SECRET is required')
 
-// Create a settings service instance with the service role client
+// Create service instances with the service role client
 const settingsService = new SettingsService(createServiceClient())
+const callLogService = new CallLogService(createServiceClient())
 
 // Fetch automation settings from Supabase
 async function getAutomationSettings() {
@@ -107,6 +109,12 @@ export async function GET(request: NextRequest) {
         try {
           // Start VAPI call
           const callResult = await initiateVapiCall(lead)
+
+          // Create call log
+          const { error: logError } = await callLogService.createCallLog(lead.id, callResult)
+          if (logError) {
+            console.error('Error creating call log:', logError)
+          }
 
           // Update lead with call attempt
           const { success, error: updateError } = await updateLeadWithCallAttempt(lead.id, lead.call_attempts)
