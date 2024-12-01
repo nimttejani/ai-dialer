@@ -18,15 +18,15 @@ async function main() {
     const absolutePath = path.resolve(configPath);
     
     if (command === 'extract') {
-        const success = await extractPrompts(absolutePath);
-        if (success) {
+        const extractedPath = await extractPrompts(absolutePath);
+        if (extractedPath) {
             console.log('Successfully extracted prompts to ./prompts directory');
-            console.log('Created extracted config at config.extracted.json');
+            console.log(`Created extracted config at ${path.relative(process.cwd(), extractedPath)}`);
         }
     } else if (command === 'reconstruct') {
-        const success = await reconstructConfig(absolutePath);
-        if (success) {
-            console.log('Successfully reconstructed config at config.reconstructed.json');
+        const originalPath = await reconstructConfig(absolutePath);
+        if (originalPath) {
+            console.log(`Successfully reconstructed config at ${path.relative(process.cwd(), originalPath)}`);
         }
     } else {
         console.log('Invalid command. Use "extract" or "reconstruct"');

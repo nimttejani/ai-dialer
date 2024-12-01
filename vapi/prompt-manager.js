@@ -75,7 +75,7 @@ async function extractPrompts(configPath) {
             },
             firstMessage: `@[${PATHS.firstMessage}]`,
             endCallMessage: `@[${PATHS.endCallMessage}]`,
-            serverUrl: '${BASE_URL}/api/integrations/vapi',
+            serverUrl: configData.serverUrl,
             analysisPlan: {
                 summaryPrompt: `@[${PATHS.summaryPrompt}]`,
                 successEvaluationPrompt: `@[${PATHS.successEvaluation}]`,
@@ -84,16 +84,17 @@ async function extractPrompts(configPath) {
             }
         };
 
-        // Save the updated config
-        await fs.writeFile(
-            getExtractedConfigPath(configPath),
-            JSON.stringify(updatedConfig, null, 2)
-        );
+        // Get the extracted file path
+        const { dir, name, ext } = path.parse(configPath);
+        const extractedPath = path.join(dir, `${name}.extracted${ext}`);
 
-        return true;
+        // Save the updated config
+        await fs.writeFile(extractedPath, JSON.stringify(updatedConfig, null, 2));
+
+        return extractedPath;
     } catch (error) {
         console.error('Error extracting prompts:', error);
-        return false;
+        return null;
     }
 }
 
@@ -134,16 +135,17 @@ async function reconstructConfig(extractedConfigPath) {
             }
         };
 
-        // Save the reconstructed config
-        await fs.writeFile(
-            path.join(path.dirname(extractedConfigPath), 'config.reconstructed.json'),
-            JSON.stringify(reconstructedConfig, null, 2)
-        );
+        // Get the original file path by removing '.extracted' from the name
+        const { dir, name, ext } = path.parse(extractedConfigPath);
+        const originalPath = path.join(dir, `${name.replace('.extracted', '')}${ext}`);
 
-        return true;
+        // Save the reconstructed config back to the original file
+        await fs.writeFile(originalPath, JSON.stringify(reconstructedConfig, null, 2));
+
+        return originalPath;
     } catch (error) {
         console.error('Error reconstructing config:', error);
-        return false;
+        return null;
     }
 }
 
