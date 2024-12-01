@@ -2,6 +2,7 @@ import type { Lead } from "@/lib/supabase/types";
 
 export interface CSVPreviewData {
   company_name: string;
+  contact_name: string;
   phone: string;
   email: string;
 }
@@ -29,6 +30,7 @@ export interface EditingCell {
 
 export interface LeadFormState {
   company_name?: string;
+  contact_name?: string;
   phone?: string;
   email?: string;
 }

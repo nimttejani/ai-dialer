@@ -55,6 +55,7 @@ $$ language plpgsql;
 create table leads (
   id uuid primary key default uuid_generate_v4(),
   company_name text not null,
+  contact_name text not null,
   phone text not null,
   email text not null,
   status lead_status default 'pending',

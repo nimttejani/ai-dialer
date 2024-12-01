@@ -39,6 +39,7 @@ export function CSVPreviewDialog({
             <TableHeader>
               <TableRow>
                 <TableHead>Company Name</TableHead>
+                <TableHead>Contact Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
               </TableRow>
@@ -47,6 +48,7 @@ export function CSVPreviewDialog({
               {previewData.map((row, index) => (
                 <TableRow key={index}>
                   <TableCell>{row.company_name}</TableCell>
+                  <TableCell>{row.contact_name}</TableCell>
                   <TableCell>{row.phone}</TableCell>
                   <TableCell>{row.email}</TableCell>
                 </TableRow>

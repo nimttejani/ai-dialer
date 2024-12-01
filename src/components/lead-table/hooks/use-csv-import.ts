@@ -40,12 +40,16 @@ export function useCSVImport(onLeadsUpdate: () => void) {
         const companyNameIndex = headers.findIndex(
           (h) =>
             h.includes("company") ||
-            h.includes("name") ||
             h.includes("business")
+        );
+        const contactNameIndex = headers.findIndex(
+          (h) =>
+            h.includes("contact_name") ||
+            h.includes("contact") && h.includes("name")
         );
         const phoneIndex = headers.findIndex(
           (h) =>
-            h.includes("phone") || h.includes("tel") || h.includes("contact")
+            h.includes("phone") || h.includes("tel")
         );
         const emailIndex = headers.findIndex(
           (h) =>
@@ -54,11 +58,12 @@ export function useCSVImport(onLeadsUpdate: () => void) {
 
         if (
           companyNameIndex === -1 ||
+          contactNameIndex === -1 ||
           phoneIndex === -1 ||
           emailIndex === -1
         ) {
           throw new Error(
-            "Could not find required columns (company name, phone, email)"
+            "Could not find required columns (company name, contact name, phone, email)"
           );
         }
 
@@ -74,11 +79,12 @@ export function useCSVImport(onLeadsUpdate: () => void) {
 
             return {
               company_name: cleanValues[companyNameIndex] || "",
+              contact_name: cleanValues[contactNameIndex] || "",
               phone: cleanValues[phoneIndex] || "",
               email: cleanValues[emailIndex] || "",
             };
           })
-          .filter((row) => row.company_name && row.phone && row.email);
+          .filter((row) => row.company_name && row.contact_name && row.phone && row.email);
 
         if (parsedData.length === 0) {
           throw new Error("No valid data rows found in CSV");

@@ -49,6 +49,7 @@ export function LeadFormDialog({
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Input
+              id="company_name"
               placeholder="Company Name"
               value={formData.company_name || ""}
               onChange={(e) =>
@@ -56,9 +57,19 @@ export function LeadFormDialog({
               }
               required
             />
+            <Input
+              id="contact_name"
+              placeholder="Contact Name"
+              value={formData.contact_name || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, contact_name: e.target.value })
+              }
+              required
+            />
           </div>
           <div className="grid gap-2">
             <Input
+              id="phone"
               placeholder="Phone"
               value={formData.phone || ""}
               onChange={(e) =>
@@ -69,6 +80,7 @@ export function LeadFormDialog({
           </div>
           <div className="grid gap-2">
             <Input
+              id="email"
               placeholder="Email"
               type="email"
               value={formData.email || ""}

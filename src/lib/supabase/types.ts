@@ -5,6 +5,7 @@ export interface Database {
         Row: {
           id: string
           company_name: string
+          contact_name: string
           phone: string
           email: string
           status: 'pending' | 'calling' | 'no_answer' | 'scheduled' | 'not_interested' | 'error'
