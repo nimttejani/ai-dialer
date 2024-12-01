@@ -97,7 +97,7 @@ async function extractPrompts(configPath) {
     }
 }
 
-async function reconstructConfig(extractedConfigPath, baseUrl) {
+async function reconstructConfig(extractedConfigPath) {
     try {
         // Read the extracted config
         const configData = JSON.parse(await fs.readFile(extractedConfigPath, 'utf8'));
@@ -125,7 +125,7 @@ async function reconstructConfig(extractedConfigPath, baseUrl) {
             },
             firstMessage: await readFileContent(configData.firstMessage),
             endCallMessage: await readFileContent(configData.endCallMessage),
-            serverUrl: baseUrl ? configData.serverUrl.replace('${BASE_URL}', baseUrl) : configData.serverUrl,
+            serverUrl: configData.serverUrl,
             analysisPlan: {
                 summaryPrompt: await readFileContent(configData.analysisPlan.summaryPrompt),
                 successEvaluationPrompt: await readFileContent(configData.analysisPlan.successEvaluationPrompt),
