@@ -23,7 +23,7 @@
     "provider": "openai",
     "temperature": 0.2
   },
-  "firstMessage": "Hi, is this John George from JG's HVAC?",
+  "firstMessage": "Hi, is this {{lead_contact_name}} from {{lead_company_name}}?",
   "endCallFunctionEnabled": true,
   "endCallMessage": "Thank you for your time today. Have a great rest of your day!",
   "transcriber": {
@@ -50,6 +50,7 @@
   "backchannelingEnabled": false,
   "analysisPlan": {
     "summaryPrompt": "Summarize this HVAC sales qualification call in 100-150 words. Focus on:\n\n1. Company size and current operations\n2. Main pain points in their scheduling process\n3. Level of interest in the solution\n4. Decision maker status\n5. Outcome (demo scheduled/email follow-up/not interested)\n\nExclude pleasantries and small talk. Prioritize information crucial for sales follow-up.",
+    "successEvaluationPrompt": "Evaluate the success of this HVAC sales call. Respond with \"pass\" or \"fail\" based on:\n\n1. Contact Qualification:\n   - Spoke with decision maker or got decision maker's contact\n   - Confirmed company is in HVAC industry\n\n2. Information Gathering:\n   - Got company name and contact details\n   - Understood their current process/pain points\n\n3. Outcome Achievement:\n   - Either scheduled a demo\n   - OR got email for follow-up\n   - OR clearly determined they're not a fit\n\n4. Call Quality:\n   - Maintained professional tone\n   - Handled objections appropriately\n   - Reached natural conclusion\n\nFail if:\n- Spoke with wrong company/person with no follow-up path\n- Couldn't gather basic qualification info\n- Call ended abruptly or unprofessionally",
     "structuredDataPrompt": "You are analyzing a transcript from an AI sales call. Your task is to determine the final state of the call based on the conversation.\n\n## Context\n- Product: AI voice assistant for HVAC companies\n- Purpose: Qualification call to book product demos\n\n## Task\nAnalyze the provided transcript and classify the call outcome into one of these states:\n- scheduled: Demo appointment successfully booked\n- not_interested: Prospect explicitly declined or showed no interest\n- no_answer: Call was not answered or disconnected prematurely",
     "structuredDataSchema": {
       "type": "object",
@@ -62,8 +63,7 @@
       "required": [
         "outcome"
       ]
-    },
-    "successEvaluationPrompt": "Evaluate the success of this HVAC sales call. Respond with \"pass\" or \"fail\" based on:\n\n1. Contact Qualification:\n   - Spoke with decision maker or got decision maker's contact\n   - Confirmed company is in HVAC industry\n\n2. Information Gathering:\n   - Got company name and contact details\n   - Understood their current process/pain points\n\n3. Outcome Achievement:\n   - Either scheduled a demo\n   - OR got email for follow-up\n   - OR clearly determined they're not a fit\n\n4. Call Quality:\n   - Maintained professional tone\n   - Handled objections appropriately\n   - Reached natural conclusion\n\nFail if:\n- Spoke with wrong company/person with no follow-up path\n- Couldn't gather basic qualification info\n- Call ended abruptly or unprofessionally"
+    }
   },
   "backgroundDenoisingEnabled": false
 }
