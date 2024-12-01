@@ -51,7 +51,46 @@ export type AvailabilityResponse = {
 
 export type BookingResponse = {
   success: boolean;
-  booking?: any;
+  booking?: {
+    data: {
+      id: number;
+      uid: string;
+      title: string;
+      description?: string;
+      hosts: Array<{
+        id: number;
+        name: string;
+        username: string;
+        timeZone: string;
+      }>;
+      status: string;
+      cancellationReason?: string;
+      reschedulingReason?: string;
+      rescheduledFromUid?: string;
+      start: string;
+      end: string;
+      duration: number;
+      eventTypeId: number;
+      eventType: {
+        id: number;
+        slug: string;
+      };
+      meetingUrl?: string;
+      location?: string;
+      absentHost?: boolean;
+      createdAt: string;
+      metadata?: Record<string, unknown>;
+      attendees: Array<{
+        name: string;
+        email: string;
+        timeZone: string;
+        language?: string;
+      }>;
+      guests?: string[];
+      bookingFieldsResponses?: Record<string, unknown>;
+    };
+    status: 'success';
+  };
   message?: string;
   error?: string;
 };
@@ -126,15 +165,17 @@ export async function createBooking(details: BookingDetails): Promise<BookingRes
       },
       body: JSON.stringify({
         eventTypeId: config.eventTypeId,
-        responses: {
+        start: details.startTime,
+        attendee: {
           name: details.name,
           email: details.email,
+          timeZone: 'Europe/London' // TODO: Add this to config in db
+        },
+        bookingFieldsResponses: {
           company: details.company,
           phone: details.phone,
-          notes: details.notes,
-        },
-        timeZone: 'America/Los_Angeles',
-        startTime: details.startTime,
+          notes: details.notes
+        }
       }),
     });
 
