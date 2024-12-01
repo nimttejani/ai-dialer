@@ -1,3 +1,34 @@
+-- Drop existing objects if they exist
+drop policy if exists "Enable read access for authenticated users" on call_logs;
+drop policy if exists "Enable insert access for authenticated users" on call_logs;
+drop policy if exists "Enable update access for authenticated users" on call_logs;
+
+drop policy if exists "Allow authenticated users to read settings" on settings;
+drop policy if exists "Allow authenticated users to update settings" on settings;
+drop policy if exists "Allow authenticated users to insert settings" on settings;
+
+drop policy if exists "Enable read access for authenticated users" on leads;
+drop policy if exists "Enable insert access for authenticated users" on leads;
+drop policy if exists "Enable update access for authenticated users" on leads;
+drop policy if exists "Enable delete access for authenticated users" on leads;
+
+drop trigger if exists update_call_logs_updated_at on call_logs;
+drop trigger if exists update_leads_updated_at on leads;
+drop trigger if exists update_settings_updated_at on settings;
+
+drop index if exists idx_call_logs_lead_id;
+drop index if exists idx_call_logs_vapi_call_id;
+drop index if exists idx_leads_status;
+drop index if exists idx_leads_last_called_at;
+drop index if exists idx_leads_cal_booking_uid;
+
+drop table if exists call_logs;
+drop table if exists leads;
+drop table if exists settings;
+
+drop function if exists update_updated_at_column();
+drop type if exists lead_status;
+
 -- Enable UUID generation
 create extension if not exists "uuid-ossp";
 
