@@ -6,10 +6,11 @@ const path = require('path');
 
 // Parse command line arguments
 const args = require('minimist')(process.argv.slice(2), {
-    string: ['env-file', 'vapi-key', 'base-url'],
+    string: ['env-file', 'vapi-key', 'vapi-secret', 'base-url'],
     alias: {
         e: 'env-file',
         k: 'vapi-key',
+        s: 'vapi-secret',
         u: 'base-url'
     },
     default: {
@@ -29,8 +30,9 @@ if (!command || !['create', 'update'].includes(command)) {
     console.log('  update    Update existing tools and assistant');
     console.log('\nOptions:');
     console.log('  -e, --env-file   Path to environment file (default: "../.env.local")');
-    console.log('  -k, --vapi-key   VAPI API key (overrides env file)');
-    console.log('  -u, --base-url   Base URL for endpoints (overrides env file)');
+    console.log('  -k, --vapi-key     VAPI API key (overrides env file)');
+    console.log('  -s, --vapi-secret  VAPI Secret key (overrides env file)');
+    console.log('  -u, --base-url     Base URL for endpoints (overrides env file)');
     process.exit(1);
 }
 
@@ -50,11 +52,18 @@ if (args['env-file']) {
 // 3. Fail if neither exists
 const getConfig = () => {
     const vapiKey = args['vapi-key'] || process.env.VAPI_API_KEY;
+    const vapiSecret = args['vapi-secret'] || process.env.VAPI_SECRET_KEY;
     const baseUrl = args['base-url'] || process.env.AI_DIALER_URL;
 
     if (!vapiKey) {
         console.error('Error: VAPI API key not provided');
         console.error('Provide it via --vapi-key argument or VAPI_API_KEY environment variable');
+        process.exit(1);
+    }
+
+    if (!vapiSecret) {
+        console.error('Error: VAPI Secret key not provided');
+        console.error('Provide it via --vapi-secret argument or VAPI_SECRET_KEY environment variable');
         process.exit(1);
     }
 
@@ -64,7 +73,7 @@ const getConfig = () => {
         process.exit(1);
     }
 
-    return { vapiKey, baseUrl };
+    return { vapiKey, vapiSecret, baseUrl };
 };
 
 async function loadConfig() {
@@ -91,11 +100,12 @@ async function makeRequest(endpoint, method, body = null) {
         console.log('Request body:', JSON.stringify(body, null, 2));
     }
 
+    const config = getConfig();
     const response = await fetch(url, {
         method,
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getConfig().vapiKey}`
+            'Authorization': `Bearer ${config.vapiKey}`
         },
         body: body ? JSON.stringify(body) : undefined
     });
@@ -125,7 +135,8 @@ async function publishConfig() {
         const variables = {
             BASE_URL: getConfig().baseUrl,
             TOOL_ID_CHECK_AVAILABILITY: config.toolIds.checkAvailability || '',
-            TOOL_ID_BOOK_APPOINTMENT: config.toolIds.bookAppointment || ''
+            TOOL_ID_BOOK_APPOINTMENT: config.toolIds.bookAppointment || '',
+            VAPI_SECRET_KEY: getConfig().vapiSecret
         };
 
         // Replace variables in configs
