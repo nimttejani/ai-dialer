@@ -13,7 +13,7 @@ const requestSchema = z.object({
       id: z.string(),
       type: z.literal('function'),
       function: z.object({
-        name: z.enum(['checkAvailability', 'bookAppointment']),
+        name: z.enum(['check_availability', 'book_appointment']),
         arguments: z.record(z.any())
       })
     })).optional(),
@@ -132,7 +132,7 @@ export async function POST(request: Request) {
 
     // Handle different function calls
     switch (functionName) {
-      case 'checkAvailability': {
+      case 'check_availability': {
         const result = await getAvailability(5);
         if (!result.success) {
           return NextResponse.json({
@@ -159,7 +159,7 @@ export async function POST(request: Request) {
         });
       }
 
-      case 'bookAppointment': {
+      case 'book_appointment': {
         let bookingDetails;
         try {
           const args = toolCall.function.arguments;
