@@ -42,7 +42,8 @@
       }
     },
     "server": {
-      "url": "${BASE_URL}/api/integrations/vapi"
+      "url": "${BASE_URL}/api/integrations/vapi",
+      "secret": "${VAPI_SECRET_KEY}"
     },
     "async": false
   }

@@ -45,7 +45,10 @@
     "end-of-call-report"
   ],
   "responseDelaySeconds": 0.7,
-  "serverUrl": "${BASE_URL}/api/integrations/vapi",
+  "server": {
+    "url": "${BASE_URL}/api/integrations/vapi",
+    "secret": "${VAPI_SECRET_KEY}"
+  },
   "maxDurationSeconds": 300,
   "backchannelingEnabled": false,
   "analysisPlan": {

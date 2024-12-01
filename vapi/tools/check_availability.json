@@ -6,7 +6,8 @@
       "description": "Gets the next available slots to book an appointment"
     },
     "server": {
-      "url": "${BASE_URL}/api/integrations/vapi"
+      "url": "${BASE_URL}/api/integrations/vapi",
+      "secret": "${VAPI_SECRET_KEY}"
     },
     "async": false
   }
