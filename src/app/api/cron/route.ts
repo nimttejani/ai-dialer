@@ -41,6 +41,14 @@ async function initiateVapiCall(lead: Lead) {
   const payload = {
     phoneNumberId: process.env.VAPI_PHONE_NUMBER_ID,
     assistantId: process.env.VAPI_ASSISTANT_ID,
+    assistantOverrides: {
+      variableValues: {
+        lead_company_name: lead.company_name,
+        lead_contact_name: lead.contact_name,
+        lead_email: lead.email,
+        lead_phone_number: lead.phone
+      }
+    },
     customer: {
       number: lead.phone
     }
