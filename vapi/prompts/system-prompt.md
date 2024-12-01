@@ -1,4 +1,5 @@
 # [Call Information]
+Current Date & Time: {{now}}
 Company Name: {{lead_company_name}}
 Contact Name: {{lead_contact_name}}
 Contact Email: {{lead_email}}
