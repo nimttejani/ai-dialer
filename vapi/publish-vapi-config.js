@@ -3,20 +3,69 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') });
+
+// Parse command line arguments
+const args = require('minimist')(process.argv.slice(2), {
+    string: ['env-file', 'vapi-key', 'base-url'],
+    alias: {
+        e: 'env-file',
+        k: 'vapi-key',
+        u: 'base-url'
+    },
+    default: {
+        'env-file': path.join(__dirname, '..', '.env.local')
+    }
+});
 
 // Configuration
 const VAPI_BASE_URL = 'https://api.vapi.ai';
 const CONFIG_FILE = path.join(__dirname, 'vapi-config.json');
 
-const command = process.argv[2];
+const command = args._[0];
 if (!command || !['create', 'update'].includes(command)) {
-    console.log('Usage: ./publish-vapi-config.js <command>');
-    console.log('Commands:');
+    console.log('Usage: ./publish-vapi-config.js <command> [options]');
+    console.log('\nCommands:');
     console.log('  create    Create new tools and assistant');
     console.log('  update    Update existing tools and assistant');
+    console.log('\nOptions:');
+    console.log('  -e, --env-file   Path to environment file (default: "../.env.local")');
+    console.log('  -k, --vapi-key   VAPI API key (overrides env file)');
+    console.log('  -u, --base-url   Base URL for endpoints (overrides env file)');
     process.exit(1);
 }
+
+// Load environment variables
+if (args['env-file']) {
+    try {
+        require('dotenv').config({ path: args['env-file'] });
+    } catch {
+        console.warn(`Warning: Could not load environment file: ${args['env-file']}`);
+        console.warn('Continuing with command line arguments or existing environment variables...');
+    }
+}
+
+// Get configuration values with priority:
+// 1. Command line arguments
+// 2. Environment variables
+// 3. Fail if neither exists
+const getConfig = () => {
+    const vapiKey = args['vapi-key'] || process.env.VAPI_API_KEY;
+    const baseUrl = args['base-url'] || process.env.AI_DIALER_URL;
+
+    if (!vapiKey) {
+        console.error('Error: VAPI API key not provided');
+        console.error('Provide it via --vapi-key argument or VAPI_API_KEY environment variable');
+        process.exit(1);
+    }
+
+    if (!baseUrl) {
+        console.error('Error: Base URL not provided');
+        console.error('Provide it via --base-url argument or AI_DIALER_URL environment variable');
+        process.exit(1);
+    }
+
+    return { vapiKey, baseUrl };
+};
 
 async function loadConfig() {
     try {
@@ -46,7 +95,7 @@ async function makeRequest(endpoint, method, body = null) {
         method,
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.VAPI_API_KEY}`
+            'Authorization': `Bearer ${getConfig().vapiKey}`
         },
         body: body ? JSON.stringify(body) : undefined
     });
@@ -74,7 +123,7 @@ async function publishConfig() {
         
         // Variables to replace in configs
         const variables = {
-            BASE_URL: process.env.AI_DIALER_URL,
+            BASE_URL: getConfig().baseUrl,
             TOOL_ID_CHECK_AVAILABILITY: config.toolIds.checkAvailability || '',
             TOOL_ID_BOOK_APPOINTMENT: config.toolIds.bookAppointment || ''
         };
