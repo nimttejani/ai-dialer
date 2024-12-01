@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable @typescript-eslint/no-require-imports */
 
-const { extractPrompts, reconstructConfig } = require('./prompt-manager');
+const { extractPrompts, reconstructConfig, getExtractedConfigPath } = require('./prompt-manager');
 const path = require('path');
 
 const command = process.argv[2];
@@ -24,7 +24,7 @@ async function main() {
         const success = await extractPrompts(absolutePath);
         if (success) {
             console.log('Successfully extracted prompts to ./prompts directory');
-            console.log('Created referenced config at config.referenced.json');
+            console.log(`Created referenced config at ${getExtractedConfigPath(absolutePath)}`);
         }
     } else if (command === 'reconstruct') {
         const success = await reconstructConfig(absolutePath, baseUrl);

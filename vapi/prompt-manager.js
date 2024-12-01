@@ -15,6 +15,13 @@ const PATHS = {
     structuredDataSchema: path.join(PROMPTS_DIR, 'structured-data-schema.json')
 };
 
+// Helper function to generate output filename
+function getExtractedConfigPath(inputPath) {
+    const parsedPath = path.parse(inputPath);
+    const baseName = path.basename(parsedPath.name); // Get filename without path and extension
+    return path.join(parsedPath.dir, `${baseName}.extracted.json`);
+}
+
 async function extractPrompts(configPath) {
     try {
         // Read and parse the config file
@@ -79,7 +86,7 @@ async function extractPrompts(configPath) {
 
         // Save the updated config
         await fs.writeFile(
-            path.join(path.dirname(configPath), 'config.referenced.json'),
+            getExtractedConfigPath(configPath),
             JSON.stringify(updatedConfig, null, 2)
         );
 
@@ -144,5 +151,6 @@ async function reconstructConfig(referencedConfigPath, baseUrl) {
 module.exports = {
     extractPrompts,
     reconstructConfig,
-    PATHS
+    PATHS,
+    getExtractedConfigPath
 };
