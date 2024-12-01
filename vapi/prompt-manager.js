@@ -97,10 +97,10 @@ async function extractPrompts(configPath) {
     }
 }
 
-async function reconstructConfig(referencedConfigPath, baseUrl) {
+async function reconstructConfig(extractedConfigPath, baseUrl) {
     try {
-        // Read the referenced config
-        const configData = JSON.parse(await fs.readFile(referencedConfigPath, 'utf8'));
+        // Read the extracted config
+        const configData = JSON.parse(await fs.readFile(extractedConfigPath, 'utf8'));
 
         // Helper function to read file content
         const readFileContent = async (filePath) => {
@@ -136,7 +136,7 @@ async function reconstructConfig(referencedConfigPath, baseUrl) {
 
         // Save the reconstructed config
         await fs.writeFile(
-            path.join(path.dirname(referencedConfigPath), 'config.reconstructed.json'),
+            path.join(path.dirname(extractedConfigPath), 'config.reconstructed.json'),
             JSON.stringify(reconstructedConfig, null, 2)
         );
 

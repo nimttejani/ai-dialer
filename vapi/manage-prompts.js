@@ -11,9 +11,9 @@ const baseUrl = process.argv[4];
 if (!command || !configPath) {
     console.log('Usage:');
     console.log('  Extract prompts:    node manage-prompts.js extract <config-path>');
-    console.log('  Reconstruct config: node manage-prompts.js reconstruct <referenced-config-path> [base-url]');
+    console.log('  Reconstruct config: node manage-prompts.js reconstruct <extracted-config-path> [base-url]');
     console.log('\nExample:');
-    console.log('  node manage-prompts.js reconstruct config.referenced.json https://your-domain.com');
+    console.log('  node manage-prompts.js reconstruct config.extracted.json https://your-domain.com');
     process.exit(1);
 }
 
@@ -24,7 +24,7 @@ async function main() {
         const success = await extractPrompts(absolutePath);
         if (success) {
             console.log('Successfully extracted prompts to ./prompts directory');
-            console.log(`Created referenced config at ${getExtractedConfigPath(absolutePath)}`);
+            console.log(`Created extracted config at ${getExtractedConfigPath(absolutePath)}`);
         }
     } else if (command === 'reconstruct') {
         const success = await reconstructConfig(absolutePath, baseUrl);
