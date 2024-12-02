@@ -28,7 +28,11 @@
             "type": "string"
           },
           "startTime": {
-            "description": "the preferred time slot in ISO 8601 format",
+            "description": "the preferred time slot in ISO 8601 format in the specified timezone",
+            "type": "string"
+          },
+          "timezone": {
+            "description": "The timezone of the startTime (e.g., 'America/Los_Angeles')",
             "type": "string"
           }
         },
@@ -37,7 +41,8 @@
           "email",
           "company",
           "phone",
-          "startTime"
+          "startTime",
+          "timezone"
         ]
       }
     },

@@ -3,7 +3,17 @@
     "function": {
       "name": "check_availability",
       "async": false,
-      "description": "Gets the next available slots to book an appointment"
+      "description": "Gets the next available slots to book an appointment",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "timezone": {
+            "description": "The timezone to return available slots in (e.g., 'America/Los_Angeles')",
+            "type": "string"
+          }
+        },
+        "required": ["timezone"]
+      }
     },
     "server": {
       "url": "${BASE_URL}/api/integrations/vapi",
