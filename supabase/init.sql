@@ -76,7 +76,7 @@ create trigger update_leads_updated_at
 -- Create call_logs table
 create table call_logs (
   id uuid primary key default uuid_generate_v4(),
-  lead_id uuid not null references leads(id),
+  lead_id uuid not null references leads(id) on delete cascade,
   vapi_call_id text not null unique,
   initiated_at timestamp with time zone,
   ended_at timestamp with time zone,
