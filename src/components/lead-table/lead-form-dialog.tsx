@@ -10,6 +10,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LeadFormState } from "./types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface LeadFormDialogProps {
   open: boolean;
@@ -89,6 +96,23 @@ export function LeadFormDialog({
               }
               required
             />
+          </div>
+          <div className="grid gap-2">
+            <Select
+              value={formData.timezone || "America/Los_Angeles"}
+              onValueChange={(value) => setFormData({ ...formData, timezone: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select timezone" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                <SelectItem value="America/Phoenix">Arizona Time (AZ)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

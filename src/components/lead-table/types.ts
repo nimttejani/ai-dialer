@@ -5,6 +5,7 @@ export interface CSVPreviewData {
   contact_name: string;
   phone: string;
   email: string;
+  timezone?: string;
 }
 
 export interface CSVDialogProps {
@@ -33,4 +34,5 @@ export interface LeadFormState {
   contact_name?: string;
   phone?: string;
   email?: string;
+  timezone?: string;
 }

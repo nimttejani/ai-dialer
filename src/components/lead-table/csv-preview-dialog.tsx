@@ -42,6 +42,7 @@ export function CSVPreviewDialog({
                 <TableHead>Contact Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Timezone</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -51,6 +52,7 @@ export function CSVPreviewDialog({
                   <TableCell>{row.contact_name}</TableCell>
                   <TableCell>{row.phone}</TableCell>
                   <TableCell>{row.email}</TableCell>
+                  <TableCell>{row.timezone || 'America/Los_Angeles'}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

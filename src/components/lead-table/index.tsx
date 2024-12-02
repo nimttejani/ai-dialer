@@ -178,6 +178,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
       company_name: data.company_name || '',
       phone: data.phone || '',
       email: data.email || '',
+      timezone: data.timezone || 'America/Los_Angeles',
       ...data,
       status: "pending" as const,
       call_attempts: 0,
