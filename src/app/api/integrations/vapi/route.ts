@@ -33,9 +33,30 @@ const bookingArgsSchema = z.object({
   email: z.string().email(),
   company: z.string(),
   phone: z.string(),
+  timezone: z.string(),
   notes: z.string().optional(),
   startTime: z.string()
 });
+
+// Schema for availability arguments
+const availabilityArgsSchema = z.object({
+  timezone: z.string()
+});
+
+// Helper function to convert local time to UTC
+function localToUTC(dateStr: string, timezone: string): string {
+  const date = new Date(dateStr);
+  const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+  const localDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
+  const diff = utcDate.getTime() - localDate.getTime();
+  return new Date(date.getTime() + diff).toISOString();
+}
+
+// Helper function to convert UTC to local time
+function utcToLocal(dateStr: string, timezone: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleString('en-US', { timeZone: timezone });
+}
 
 // Validate request authentication
 function validateApiKey(request: Request) {
@@ -133,6 +154,22 @@ export async function POST(request: Request) {
     // Handle different function calls
     switch (functionName) {
       case 'check_availability': {
+        let availabilityArgs;
+        try {
+          const args = toolCall.function.arguments;
+          availabilityArgs = availabilityArgsSchema.parse(args);
+        } catch {
+          return NextResponse.json({
+            results: [{
+              toolCallId,
+              result: 'Error: Invalid availability arguments. Timezone is required.'
+            }]
+          }, { 
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+
         const result = await getAvailability(5);
         if (!result.success) {
           return NextResponse.json({
@@ -146,11 +183,18 @@ export async function POST(request: Request) {
           });
         }
         
+        // Convert UTC slots to local time
+        const localSlots = result.availability?.slots.map(slot => ({
+          ...slot,
+          time: utcToLocal(slot.time, availabilityArgs.timezone)
+        })) || [];
+
         return NextResponse.json({
           results: [{
             toolCallId,
             result: {
-              availableSlots: result.availability?.slots || []
+              availableSlots: localSlots,
+              timezone: availabilityArgs.timezone
             }
           }]
         }, { 
@@ -163,12 +207,19 @@ export async function POST(request: Request) {
         let bookingDetails;
         try {
           const args = toolCall.function.arguments;
-          bookingDetails = bookingArgsSchema.parse(args);
-        } catch {
+          const parsedArgs = bookingArgsSchema.parse(args);
+          
+          // Convert local time to UTC for cal.com
+          bookingDetails = {
+            ...parsedArgs,
+            startTime: localToUTC(parsedArgs.startTime, parsedArgs.timezone)
+          };
+        } catch (error) {
+          console.error('Error parsing booking details:', error);
           return NextResponse.json({
             results: [{
               toolCallId,
-              result: 'Error: Invalid booking details provided'
+              result: 'Error: Invalid booking details provided. Required fields: name, email, company, phone, timezone, startTime'
             }]
           }, { 
             status: 400,
