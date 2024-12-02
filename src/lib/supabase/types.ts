@@ -10,6 +10,7 @@ export interface Database {
           email: string
           status: 'pending' | 'calling' | 'no_answer' | 'scheduled' | 'not_interested' | 'error'
           call_attempts: number
+          timezone: string
           last_called_at: string | null
           created_at: string
           updated_at: string

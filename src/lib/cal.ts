@@ -36,6 +36,7 @@ export type BookingDetails = {
   email: string;
   company: string;
   phone: string;
+  timezone: string;
   notes?: string;
   startTime: string;
 };
@@ -169,7 +170,7 @@ export async function createBooking(details: BookingDetails): Promise<BookingRes
         attendee: {
           name: details.name,
           email: details.email,
-          timeZone: 'Europe/London' // TODO: Add this to config in db
+          timeZone: details.timezone
         },
         bookingFieldsResponses: {
           company: details.company,

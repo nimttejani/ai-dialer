@@ -4,6 +4,7 @@ export const FIELD_MAPPINGS = {
   phone: "Phone",
   email: "Email",
   status: "Status",
+  timezone: "Timezone",
   call_attempts: "Call Attempts",
   last_called_at: "Last Called At",
 } as const;

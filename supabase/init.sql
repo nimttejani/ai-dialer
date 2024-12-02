@@ -60,6 +60,7 @@ create table leads (
   email text not null,
   status lead_status default 'pending',
   call_attempts integer default 0,
+  timezone text default 'America/Los_Angeles',
   last_called_at timestamp with time zone,
   cal_booking_uid text unique,
   created_at timestamp with time zone default timezone('utc'::text, now()),
