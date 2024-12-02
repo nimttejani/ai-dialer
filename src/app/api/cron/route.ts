@@ -38,6 +38,18 @@ async function getAutomationSettings() {
 async function initiateVapiCall(lead: Lead) {
   console.log(`Initiating VAPI call for lead:`, lead);
   
+  // Get current time in lead's timezone
+  const leadDateTime = new Date().toLocaleString('en-US', { 
+    timeZone: lead.timezone || 'America/Los_Angeles',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: true
+  });
+  
   const payload = {
     phoneNumberId: process.env.VAPI_PHONE_NUMBER_ID,
     assistantId: process.env.VAPI_ASSISTANT_ID,
@@ -46,7 +58,9 @@ async function initiateVapiCall(lead: Lead) {
         lead_company_name: lead.company_name,
         lead_contact_name: lead.contact_name,
         lead_email: lead.email,
-        lead_phone_number: lead.phone
+        lead_phone_number: lead.phone,
+        lead_timezone: lead.timezone || 'America/Los_Angeles',
+        lead_datetime: leadDateTime
       }
     },
     customer: {
