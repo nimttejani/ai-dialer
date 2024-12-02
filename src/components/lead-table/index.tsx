@@ -176,6 +176,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
   const handleAddLead = async (data: Partial<Lead>) => {
     const newLead = {
       company_name: data.company_name || '',
+      contact_name: data.contact_name || data.company_name || 'Unknown Contact',
       phone: data.phone || '',
       email: data.email || '',
       timezone: data.timezone || 'America/Los_Angeles',
