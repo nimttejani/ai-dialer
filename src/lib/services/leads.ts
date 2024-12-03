@@ -214,6 +214,25 @@ export class LeadsService {
     error?: any 
   }> {
     try {
+      // First count how many leads are currently being called
+      const { count: activeCallsCount, error: countError } = await this.supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'calling');
+
+      if (countError) throw countError;
+
+      // Calculate how many new calls we can make
+      const availableSlots = Math.max(0, maxCallsBatch - (activeCallsCount || 0));
+
+      // If no slots available, return empty array
+      if (availableSlots === 0) {
+        return {
+          success: true,
+          leads: []
+        };
+      }
+
       const query = this.supabase
         .from('leads')
         .select('*')
@@ -221,13 +240,15 @@ export class LeadsService {
         .or(`last_called_at.is.null,last_called_at.lt.${new Date(Date.now() - retryInterval * 60 * 1000).toISOString()}`)
         .lt('call_attempts', maxAttempts)
         .order('last_called_at', { ascending: true, nullsFirst: true })
-        .limit(maxCallsBatch);
+        .limit(availableSlots);
 
       console.log('Fetching pending leads with conditions:', {
         status: 'pending',
         retryIntervalMinutes: retryInterval,
         maxAttempts,
         maxCallsBatch,
+        activeCallsCount,
+        availableSlots,
         retryTime: new Date(Date.now() - retryInterval * 60 * 1000).toISOString()
       });
 
