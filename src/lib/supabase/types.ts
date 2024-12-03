@@ -12,6 +12,8 @@ export interface Database {
           call_attempts: number
           timezone: string
           last_called_at: string | null
+          cal_booking_uid: string | null
+          follow_up_email_sent: boolean
           created_at: string
           updated_at: string
         }

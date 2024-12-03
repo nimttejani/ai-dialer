@@ -132,23 +132,41 @@ export async function POST(request: Request) {
         const settings = await settingsService.getAutomationSettings();
 
         // Send follow-up email for not_interested immediately, or for no_answer only when max attempts reached
-        if (lead && (
+        // Also ensure we haven't sent a follow-up email already
+        if (lead && !lead.follow_up_email_sent && (
           status === 'not_interested' || 
           (status === 'no_answer' && lead.call_attempts >= settings.max_attempts)
         )) {
           try {
             const emailService = new EmailService();
-            await emailService.sendFollowUpEmail({
+            const emailResult = await emailService.sendFollowUpEmail({
               name: lead.contact_name,
               email: lead.email,
               company: lead.company_name
             }, status);
-            console.log(`Follow-up email sent to lead ${lead.email} with status ${status}`);
+
+            // Only mark the email as sent if Resend confirms successful delivery
+            if (emailResult.error === null) {
+              const { error: updateError } = await leadsService.updateLead(lead.id, { 
+                follow_up_email_sent: true 
+              });
+              
+              if (updateError) {
+                console.error('Error updating follow_up_email_sent flag:', updateError);
+              } else {
+                console.log(`Follow-up email sent and flag updated for lead ${lead.email} with status ${status}`);
+              }
+            } else {
+              console.error('Error sending follow-up email:', emailResult.error);
+            }
           } catch (emailError) {
-            console.error('Error sending follow-up email:', emailError);
+            console.error('Error in email sending process:', emailError);
           }
         } else if (status === 'no_answer') {
-          console.log(`No follow-up email sent yet for ${lead?.email}. Attempts: ${lead?.call_attempts}/${settings.max_attempts}`);
+          const reason = lead?.follow_up_email_sent 
+            ? 'follow-up email already sent'
+            : `attempts (${lead?.call_attempts}/${settings.max_attempts}) not reached max`;
+          console.log(`No follow-up email sent for ${lead?.email}: ${reason}`);
         }
       } else {
         console.warn('Invalid status or missing lead_id. Status:', status, 'Lead ID:', updatedCallLog.lead_id);

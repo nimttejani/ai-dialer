@@ -63,6 +63,7 @@ create table leads (
   timezone text default 'America/Los_Angeles',
   last_called_at timestamp with time zone,
   cal_booking_uid text unique,
+  follow_up_email_sent boolean default false,
   created_at timestamp with time zone default timezone('utc'::text, now()),
   updated_at timestamp with time zone default timezone('utc'::text, now())
 );
