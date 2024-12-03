@@ -3,6 +3,7 @@ import { getAvailability, createBooking } from '@/lib/cal';
 import { CallLogService } from '@/lib/services/call-logs';
 import { LeadsService } from '@/lib/services/leads';
 import { EmailService } from '@/lib/services/email';
+import { SettingsService } from '@/lib/services/settings';
 import { createServiceClient } from '@/lib/supabase/service';
 import { z } from 'zod';
 
@@ -100,6 +101,7 @@ export async function POST(request: Request) {
     const supabaseServiceClient = createServiceClient();
     const callLogService = new CallLogService(supabaseServiceClient);
     const leadsService = new LeadsService(supabaseServiceClient);
+    const settingsService = new SettingsService(supabaseServiceClient);
 
     // Handle end-of-call-report
     if (parsedRequest.message.type === 'end-of-call-report') {
@@ -126,8 +128,14 @@ export async function POST(request: Request) {
           console.error('Error updating lead status:', leadUpdateError);
         }
 
-        // Send follow-up email for no_answer or not_interested
-        if (lead && (status === 'no_answer' || status === 'not_interested')) {
+        // Get the current automation settings
+        const settings = await settingsService.getAutomationSettings();
+
+        // Send follow-up email for not_interested immediately, or for no_answer only when max attempts reached
+        if (lead && (
+          status === 'not_interested' || 
+          (status === 'no_answer' && lead.call_attempts >= settings.max_attempts)
+        )) {
           try {
             const emailService = new EmailService();
             await emailService.sendFollowUpEmail({
@@ -139,6 +147,8 @@ export async function POST(request: Request) {
           } catch (emailError) {
             console.error('Error sending follow-up email:', emailError);
           }
+        } else if (status === 'no_answer') {
+          console.log(`No follow-up email sent yet for ${lead?.email}. Attempts: ${lead?.call_attempts}/${settings.max_attempts}`);
         }
       } else {
         console.warn('Invalid status or missing lead_id. Status:', status, 'Lead ID:', updatedCallLog.lead_id);
