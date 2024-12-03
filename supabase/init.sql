@@ -141,7 +141,7 @@ create trigger update_settings_updated_at
 
 -- Insert default settings record
 insert into settings (automation_enabled, max_calls_batch, retry_interval, max_attempts)
-values (false, 5, 4, 3)
+values (false, 10, 15, 3)
 on conflict (id) do nothing;
 
 -- Enable RLS for settings table
