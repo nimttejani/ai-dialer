@@ -184,6 +184,8 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
       status: "pending" as const,
       call_attempts: 0,
       last_called_at: null,
+      cal_booking_uid: null,
+      follow_up_email_sent: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
