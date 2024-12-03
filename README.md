@@ -133,6 +133,20 @@ pnpm install
 pnpm dev
 ```
 
+### Database Setup
+
+1. Create a new Supabase project and get your project URL and API keys.
+
+2. Initialize the database schema by running the SQL script in `supabase/init.sql`. This will:
+   - Create all required tables (leads, call_logs, settings)
+   - Set up indexes and relationships
+   - Configure row-level security policies
+   - Enable realtime subscriptions for the leads table
+
+3. Verify the setup by:
+   - Checking that all tables are created in the Supabase dashboard
+   - Confirming the realtime functionality is working by checking the Network tab in your browser's developer tools for WebSocket connections
+
 ### Testing the Cron Job
 
 1. Start the development server:

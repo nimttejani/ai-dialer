@@ -167,7 +167,7 @@ create policy "Allow authenticated users to insert settings"
 -- Drop appointments table if it exists
 drop table if exists appointments;
 
--- Enable RLS on all tables
+-- Enable RLS on leads table
 alter table leads enable row level security;
 
 -- Drop existing policies if they exist
@@ -200,3 +200,8 @@ create policy "Enable delete access for authenticated users" on leads
 create index idx_leads_status on leads(status);
 create index idx_leads_last_called_at on leads(last_called_at);
 create index idx_leads_cal_booking_uid on leads(cal_booking_uid);
+
+-- Enable realtime subscriptions for leads table
+drop publication if exists supabase_realtime;
+create publication supabase_realtime;
+alter publication supabase_realtime add table leads;

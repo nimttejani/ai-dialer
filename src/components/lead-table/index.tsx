@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { Table } from "@/components/ui/table";
@@ -17,6 +17,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { Lead } from "@/lib/supabase/types";
 import { leadsService } from "@/lib/services/leads";
+import { supabase } from "@/lib/supabase/client";
+import debounce from "lodash/debounce";
 
 // Import our new components and hooks
 import { CSVPreviewDialog } from "./csv-preview-dialog";
@@ -113,6 +115,79 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
   useEffect(() => {
     fetchLeads(false, false);
   }, [currentPage, pageSize, sortState]);
+
+  // Memoize the debounced update handler
+  const handleDatabaseChange = useCallback(
+    debounce(async () => {
+      const { data: updatedLeads, error, count } = await leadsService.getLeads({
+        sortBy: sortState.column
+          ? {
+              column: sortState.column,
+              ascending: sortState.direction === "asc",
+            }
+          : undefined,
+        page: currentPage,
+        pageSize: pageSize,
+      });
+
+      if (error) {
+        toast({
+          title: "Error refreshing leads",
+          description: "There was a problem updating the table.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (updatedLeads) {
+        setRawLeads(updatedLeads);
+        if (count !== undefined) {
+          setTotalRecords(count);
+        }
+      }
+    }, 250),
+    [currentPage, pageSize, sortState, toast]
+  );
+
+  useEffect(() => {
+    // Subscribe to changes on the leads table
+    const subscription = supabase
+      .channel('leads-table-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'leads',
+        },
+        handleDatabaseChange
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'leads',
+        },
+        handleDatabaseChange
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'leads',
+        },
+        handleDatabaseChange
+      )
+      .subscribe();
+
+    // Cleanup subscription and debounced handler on component unmount
+    return () => {
+      subscription.unsubscribe();
+      handleDatabaseChange.cancel();
+    };
+  }, [handleDatabaseChange]);
 
   const handleManualRefresh = () => {
     // Force refresh when manually triggered
