@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAvailability, createBooking } from '@/lib/cal';
 import { CallLogService } from '@/lib/services/call-logs';
 import { LeadsService } from '@/lib/services/leads';
+import { EmailService } from '@/lib/services/email';
 import { createServiceClient } from '@/lib/supabase/service';
 import { z } from 'zod';
 
@@ -120,9 +121,24 @@ export async function POST(request: Request) {
       
       // Only update if we got a valid status and have a lead_id
       if (updatedCallLog.lead_id && (status === 'no_answer' || status === 'scheduled' || status === 'not_interested')) {
-        const { success, error: leadUpdateError } = await leadsService.updateLead(updatedCallLog.lead_id, { status });
+        const { success, error: leadUpdateError, data: lead } = await leadsService.updateLead(updatedCallLog.lead_id, { status });
         if (!success) {
           console.error('Error updating lead status:', leadUpdateError);
+        }
+
+        // Send follow-up email for no_answer or not_interested
+        if (lead && (status === 'no_answer' || status === 'not_interested')) {
+          try {
+            const emailService = new EmailService();
+            await emailService.sendFollowUpEmail({
+              name: lead.contact_name,
+              email: lead.email,
+              company: lead.company_name
+            }, status);
+            console.log(`Follow-up email sent to lead ${lead.email} with status ${status}`);
+          } catch (emailError) {
+            console.error('Error sending follow-up email:', emailError);
+          }
         }
       } else {
         console.warn('Invalid status or missing lead_id. Status:', status, 'Lead ID:', updatedCallLog.lead_id);
