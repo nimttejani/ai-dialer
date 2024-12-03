@@ -11,7 +11,6 @@ declare namespace NodeJS {
     CALCOM_USER_ID: string;
     CALCOM_EVENT_TYPE_ID: string;
     CALCOM_EVENT_DURATION: string;
-    CALCOM_WEBHOOK_SECRET: string;
 
     // Database Configuration
     NEXT_PUBLIC_SUPABASE_URL: string;
