@@ -33,23 +33,6 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['settings']['Row'], 'id'>
         Update: Partial<Database['public']['Tables']['settings']['Row']>
       }
-      appointments: {
-        Row: {
-          id: string
-          cal_booking_uid: string
-          customer_name: string | null
-          customer_email: string | null
-          customer_phone: string | null
-          start_time: string | null
-          end_time: string | null
-          status: string
-          cancellation_reason: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: Omit<Database['public']['Tables']['appointments']['Row'], 'id'>
-        Update: Partial<Database['public']['Tables']['appointments']['Row']>
-      }
     }
     Views: {
       [_ in never]: never
