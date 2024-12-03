@@ -85,6 +85,31 @@ class SettingsService {
       }
     }
   }
+
+  async updateAllSettings(settings: AutomationSettings): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await this.supabase
+        .from('settings')
+        .update(settings)
+        .not('id', 'is', null) // Update all rows (should only be one)
+
+      if (error) throw error
+
+      return { success: true }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : typeof error === 'string' 
+          ? error 
+          : 'Failed to update settings'
+      
+      console.log('Error updating automation settings:', errorMessage)
+      return { 
+        success: false, 
+        error: errorMessage
+      }
+    }
+  }
 }
 
 // Export a singleton instance with the default client for client-side use
