@@ -19,7 +19,7 @@ export class EmailService {
       ? 'Following up on our call attempt' 
       : 'Thank you for your time';
 
-    const bookingLink = process.env.BOOKING_LINK || 'https://cal.com/your-booking-link';
+    const bookingLink = process.env.CALCOM_BOOKING_LINK || 'https://cal.com/your-booking-link';
     
     const message = status === 'no_answer'
       ? `Hi ${lead.name},\n\n`
@@ -34,8 +34,8 @@ export class EmailService {
         + `If you change your mind, you can always book a demo at: ${bookingLink}\n\n`
         + `Best regards,\nAI Dialer Team`;
 
-    const fromEmail = process.env.FROM_EMAIL || 'team@example.com';
-    const fromName = process.env.FROM_NAME || 'AI Dialer Team';
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'team@example.com';
+    const fromName = process.env.RESEND_FROM_NAME || 'AI Dialer Team';
 
     return await this.resend.emails.send({
       from: `${fromName} <${fromEmail}>`,
