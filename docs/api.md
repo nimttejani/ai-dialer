@@ -4,7 +4,7 @@
 
 All API endpoints require authentication via Supabase Auth except:
 - `/api/cron` (requires CRON_SECRET)
-- `/api/integrations/vapi` (requires VAPI authentication)
+- `/api/integrations/vapi` (requires VAPI_SECRET_KEY)
 
 Unauthorized requests will receive:
 ```typescript
@@ -26,11 +26,15 @@ Retrieves all leads from the system.
   {
     id: string;
     company_name: string;
+    contact_name: string;
     phone: string;
     email: string;
-    status: 'pending' | 'calling' | 'no_answer' | 'scheduled' | 'not_interested';
+    status: 'pending' | 'calling' | 'no_answer' | 'scheduled' | 'not_interested' | 'error';
     call_attempts: number;
+    timezone: string;
     last_called_at: string | null;
+    cal_booking_uid: string | null;
+    follow_up_email_sent: boolean;
     created_at: string;
     updated_at: string;
   }
@@ -44,25 +48,51 @@ Add new leads to the system. Accepts single lead or array of leads.
 ```typescript
 {
   company_name: string;
+  contact_name: string;
   phone: string;
   email: string;
+  timezone?: string; // defaults to 'America/Los_Angeles'
 }
 ```
 or
 ```typescript
 Array<{
   company_name: string;
+  contact_name: string;
   phone: string;
   email: string;
+  timezone?: string;
 }>
 ```
 
+**Response:**
+```typescript
+{
+  data: Lead[] | null;
+  error?: string;
+}
+```
+
 #### POST `/api/leads/import`
-Bulk import leads via CSV.
+Bulk import leads.
 
 **Request Body:**
 ```typescript
-FormData with 'file' field containing CSV file
+Array<{
+  company_name: string;
+  contact_name: string;
+  phone: string;
+  email: string;
+  timezone?: string;
+}>
+```
+
+**Response:**
+```typescript
+{
+  data: Lead[] | null;
+  error?: string;
+}
 ```
 
 #### PUT `/api/leads/[id]`
@@ -72,16 +102,28 @@ Update lead details.
 ```typescript
 {
   company_name?: string;
+  contact_name?: string;
   phone?: string;
   email?: string;
-  status?: 'pending' | 'calling' | 'no_answer' | 'scheduled' | 'not_interested';
+  status?: 'pending' | 'calling' | 'no_answer' | 'scheduled' | 'not_interested' | 'error';
   call_attempts?: number;
+  timezone?: string;
   last_called_at?: string | null;
+  cal_booking_uid?: string | null;
+  follow_up_email_sent?: boolean;
 }
 ```
 
 #### DELETE `/api/leads/[id]`
 Remove a lead from the system.
+
+**Response:**
+```typescript
+{
+  message: string;
+  error?: string;
+}
+```
 
 ### Automation Control
 
@@ -121,7 +163,19 @@ Authorization: Bearer YOUR_CRON_SECRET
 **Response:**
 ```typescript
 {
-  message: string; // Status message about the automation run
+  message: string;
+  summary?: {
+    total: number;
+    successful: number;
+    failed: number;
+  };
+  details?: Array<{
+    lead: Lead;
+    success: boolean;
+    callId?: string;
+    error?: any;
+  }>;
+  error?: string;
 }
 ```
 
@@ -134,70 +188,61 @@ Endpoint for VAPI agent to interact with the system.
 
 **Authentication:**
 ```http
-Authorization: Bearer YOUR_VAPI_SECRET
+x-vapi-secret: YOUR_VAPI_SECRET_KEY
 ```
 
 **Request Body:**
 ```typescript
 {
-  action: 'check_availability' | 'book_appointment';
-  bookingDetails?: {
-    name: string;
-    email: string;
-    company: string;
-    phone: string;
-    notes?: string;
-    startTime: string; // ISO string
-  };
-}
-```
-
-**Response:**
-```typescript
-{
-  success: boolean;
-  message: string;
-  data?: {
-    availability?: Array<{
-      date: string;
-      slots: string[];
-    }>;
-    booking?: {
+  message: {
+    type: 'tool-calls' | 'end-of-call-report';
+    toolCalls?: Array<{
       id: string;
-      startTime: string;
+      type: 'function';
+      function: {
+        name: 'check_availability' | 'book_appointment';
+        arguments: Record<string, any>;
+      };
+    }>;
+    endedReason?: string;
+    transcript?: string;
+    summary?: string;
+    messages?: any[];
+    call?: {
+      id: string;
     };
   };
 }
 ```
 
-#### Cal.com Integration
-
-##### POST `/api/integrations/cal`
-Endpoint for Cal.com API integration.
-
-**Request Body:**
+For `check_availability` function:
 ```typescript
 {
-  action: string;
-  payload: {
-    uid?: string;
-    startTime?: string;
-    endTime?: string;
-    status?: string;
-    attendees?: Array<{
-      email: string;
-      name: string;
-      phone?: string;
-    }>;
-  };
+  timezone: string;
+}
+```
+
+For `book_appointment` function:
+```typescript
+{
+  name: string;
+  email: string;
+  company: string;
+  phone: string;
+  timezone: string;
+  notes?: string;
+  startTime: string; // ISO string
 }
 ```
 
 **Response:**
 ```typescript
 {
-  success: boolean;
-  message: string;
+  results?: Array<{
+    toolCallId: string;
+    result: string;
+  }>;
+  error?: string;
 }
 ```
 
@@ -212,6 +257,7 @@ API errors follow this format:
 
 Common HTTP Status Codes:
 - 200: Success
+- 201: Created
 - 401: Unauthorized
 - 400: Bad Request
 - 500: Internal Server Error
