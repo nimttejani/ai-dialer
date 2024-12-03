@@ -111,6 +111,7 @@ export function LeadFormDialog({
                 <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
                 <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
                 <SelectItem value="America/Phoenix">Arizona Time (AZ)</SelectItem>
+                <SelectItem value="Europe/London">London Time (UTC/BST)</SelectItem>
               </SelectContent>
             </Select>
           </div>
