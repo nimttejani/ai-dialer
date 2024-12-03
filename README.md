@@ -8,42 +8,67 @@ A proof-of-concept system that demonstrates autonomous voice agent capabilities 
 
 Special thanks to Justin Hughes, founder of Firebringer AI, for providing valuable sales training methodology that has been incorporated into the system's conversational AI prompts.
 
+This project was developed as a submission for the Voice AI Accelerator's boot camp programme. Special thanks to Terrell Gentry and Lenny Cowans for specifying the functional requirements through their challenging project brief.
+
 ## Project Overview
 
-This demonstration system shows how AI can automate outbound calls to schedule appointments. It leverages:
+This demonstration system shows how AI can automate outbound calls to schedule appointments. The system manages leads, schedules calls, and handles appointment booking through an autonomous voice agent. It leverages:
+
 - VAPI.ai for voice synthesis and conversation
 - Cal.com for appointment scheduling
 - Resend for email communications
+- Supabase for database and authentication
 
 ### Key Features
 
 - 🤖 AI voice agent with natural conversation capabilities
-- 📊 Lead management dashboard
+- 📊 Lead management dashboard with sorting and filtering
 - 📅 Automated appointment scheduling
 - 📧 Automated email follow-ups
-- 📈 Real-time status tracking
+- 📈 Real-time call status tracking
 - 📁 Bulk lead import via CSV
+- 🎨 Theme support (light/dark mode)
 
 ## Project Structure
 
-- `src/` - Main application code
-- `docs/` - Project documentation
-- `supabase/` - Database migrations and types
-- `vapi/` - Voice AI integration and call scripts
+```
+/src
+├── app/           # Next.js app router pages
+├── components/    # React components
+├── hooks/         # React hooks
+├── lib/
+│   ├── services/  # Core business logic
+│   ├── supabase/  # Database clients and types
+│   ├── cal.ts     # Cal.com integration
+│   ├── types.ts   # Shared types
+│   └── utils.ts   # Shared utilities
+└── middleware.ts  # Auth middleware
+
+/docs             # Project documentation
+/supabase         # Database migrations and types
+/vapi             # Voice assistant configuration
+├── prompts/      # Assistant prompt templates
+├── tools/        # Custom assistant tools
+├── publish-vapi-config.js  # Assistant deployment script
+└── prompt-manager.js       # Prompt management utilities
+```
 
 ## Tech Stack
 
 - **Frontend**: 
-  - Next.js 15 with App Router
-  - TanStack Query (React Query) for data fetching
+  - Next.js 15.0.3 with App Router
+  - TanStack Query for data fetching
   - shadcn/ui component library
   - Tailwind CSS with class-variance-authority
-- **Database**: Supabase Postgres
-- **Authentication**: Supabase Auth
-- **Package Manager**: pnpm
-- **Automation**: Vercel Cron
+
+- **Backend**:
+  - Next.js API Routes
+  - Supabase Postgres with Row Level Security
+  - Supabase Auth with Next.js middleware
+  - Vercel Cron for automation
+
 - **External Services**:
-  - VAPI.ai - Voice calls
+  - VAPI.ai - Voice synthesis and call handling
   - Cal.com - Appointment scheduling
   - Resend - Email communications
 
@@ -65,29 +90,37 @@ This demonstration system shows how AI can automate outbound calls to schedule a
 cp .env.example .env.local
 ```
 
-2. Fill in your environment variables:
+2. Configure the following environment variables:
+
 ```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+# Cal.com Configuration
+CALCOM_API_KEY=cal_xxxx_xxxxxxxxxxxxxxxx             # Your Cal.com API key
+CALCOM_EVENT_TYPE_ID=123456                          # The numeric ID of your event type
+CALCOM_EVENT_DURATION=30                             # Duration of the event in minutes
+CALCOM_USERNAME=your-username                        # Your Cal.com username
+CALCOM_EVENT_SLUG=meeting                            # The slug of your event type
 
-# VAPI Integration
-VAPI_API_KEY=your_vapi_key
-VAPI_ASSISTANT_ID=your_assistant_id
-VAPI_PHONE_NUMBER_ID=your_phone_number_id
-VAPI_WEBHOOK_SECRET=your_webhook_secret
+# Database Configuration
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key          # For client-side auth
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key      # For server-side operations
 
-# Cal.com Integration
-CALCOM_API_KEY=your_calcom_key
-CALCOM_WEBHOOK_SECRET=your_webhook_secret
+# VAPI Configuration
+VAPI_API_KEY=vapi_xxxx_xxxxxxxxxxxxxxxx
+VAPI_ASSISTANT_ID=asst_xxxx_xxxxxxxxxxxxxxxx
+VAPI_PHONE_NUMBER_ID=phn_xxxx_xxxxxxxxxxxxxxxx
 
-# Resend
-RESEND_API_KEY=your_resend_key
+# VAPI Integration Webhook
+VAPI_SECRET_KEY=your_generated_webhook_secret_here   # For authenticating webhooks
+AI_DIALER_URL=https://your-domain.com                # Your app's base URL
 
-# Auth
-AUTH_SECRET=your_auth_secret
-AUTH_URL=your_auth_url
+# Cron Configuration
+CRON_SECRET=your-secret-here                         # For authenticating cron jobs
+
+# Email Configuration (Resend)
+RESEND_API_KEY=re_xxxx_xxxxxxxxxxxxxxxx
+RESEND_FROM_EMAIL=team@example.com                   # Sender email address
+RESEND_FROM_NAME=AI Dialer Team                      # Sender name
 ```
 
 ### Installation
@@ -122,10 +155,9 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## Documentation
 
-- [Architecture Overview](/docs/architecture.md)
-- [API Documentation](/docs/api.md)
-- [Environment Setup](./docs/environment-setup.md)
-- [Next.js 15 API Patterns](./docs/next-api-patterns.md)
+- [Architecture Overview](docs/architecture.md) - Detailed system design and components
+- [API Documentation](docs/api.md) - API endpoints and usage
+- [Development Roadmap](docs/ROADMAP.md) - Upcoming features and priorities
 
 ## License
 
