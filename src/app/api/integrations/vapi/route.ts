@@ -5,6 +5,7 @@ import { LeadsService } from '@/lib/services/leads';
 import { EmailService } from '@/lib/services/email';
 import { SettingsService } from '@/lib/services/settings';
 import { createServiceClient } from '@/lib/supabase/service';
+import { Database } from '@/lib/supabase/types';
 import { z } from 'zod';
 
 // Schema for the Vapi tool call request
@@ -69,6 +70,10 @@ function validateApiKey(request: Request) {
   return true;
 }
 
+type Lead = Database['public']['Tables']['leads']['Row'];
+type LeadStatus = Lead['status'];
+type LeadUpdate = Partial<Pick<Lead, 'status' | 'cal_booking_uid' | 'follow_up_email_sent'>>;
+
 export async function POST(request: Request) {
   try {
     // Log request details for debugging
@@ -119,11 +124,24 @@ export async function POST(request: Request) {
       }
 
       // Get the status from the report
-      const status = requestBody.message.analysis?.structuredData?.['outcome'] ?? 'error';
+      const status: LeadStatus = (requestBody.message.analysis?.structuredData?.['outcome'] ?? 'error') as LeadStatus;
       
       // Only update if we got a valid status and have a lead_id
       if (updatedCallLog.lead_id && (status === 'no_answer' || status === 'scheduled' || status === 'not_interested')) {
-        const { success, error: leadUpdateError, data: lead } = await leadsService.updateLead(updatedCallLog.lead_id, { status });
+        // For scheduled status, extract booking UID from the report
+        const updateData: LeadUpdate = { status };
+        
+        if (status === 'scheduled') {
+          const bookingResult = requestBody.message.analysis?.structuredData?.['booking_result'];
+          if (bookingResult?.status === 'success' && bookingResult?.data?.uid) {
+            updateData.cal_booking_uid = bookingResult.data.uid;
+            console.log(`Updating lead with Cal.com booking UID: ${bookingResult.data.uid}`);
+          } else {
+            console.warn('Scheduled status but no valid booking UID found:', bookingResult);
+          }
+        }
+
+        const { success, error: leadUpdateError, data: lead } = await leadsService.updateLead(updatedCallLog.lead_id, updateData);
         if (!success) {
           console.error('Error updating lead status:', leadUpdateError);
         }
@@ -147,9 +165,8 @@ export async function POST(request: Request) {
 
             // Only mark the email as sent if Resend confirms successful delivery
             if (emailResult.error === null) {
-              const { error: updateError } = await leadsService.updateLead(lead.id, { 
-                follow_up_email_sent: true 
-              });
+              const emailUpdate: LeadUpdate = { follow_up_email_sent: true };
+              const { error: updateError } = await leadsService.updateLead(lead.id, emailUpdate);
               
               if (updateError) {
                 console.error('Error updating follow_up_email_sent flag:', updateError);
