@@ -205,7 +205,7 @@ export function LeadTable({ initialLeads }: LeadTableProps) {
         variant: "success",
       });
       setIsAddingLead(false);
-      fetchLeads();
+      fetchLeads(false, true);  // Set forceRefresh to true
     }
   };
 
