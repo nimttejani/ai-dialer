@@ -1,8 +1,7 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { AutomationControl } from './automation-control';
-import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import { settingsService } from '@/lib/services/settings';
 import type { AutomationSettings } from '@/lib/services/settings';
 
@@ -11,29 +10,23 @@ export function ClientAutomationControl({
 }: { 
   initialSettings: AutomationSettings | null 
 }) {
-  const queryClient = useQueryClient();
+  const [settings, setSettings] = useState<AutomationSettings | null>(initialSettings);
 
-  // Use React Query for settings management
-  const { data: settings } = useQuery({
-    queryKey: ['automation-settings'],
-    queryFn: settingsService.getAutomationSettings,
-    initialData: initialSettings,
-    refetchOnMount: true,
-    staleTime: 0, // Always fetch fresh data
-  });
+  // Fetch settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      const newSettings = await settingsService.getAutomationSettings();
+      setSettings(newSettings);
+    };
+    loadSettings();
+  }, []);
 
-  // Mutation for updating settings
-  const { mutate: updateSettings } = useMutation({
-    mutationFn: settingsService.updateAutomationEnabled,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['automation-settings'] });
-    },
-  });
-
-  // Memoized callback for handling settings updates
-  const handleSettingsUpdate = useCallback((enabled: boolean) => {
-    updateSettings(enabled);
-  }, [updateSettings]);
+  // Handle settings updates
+  const handleSettingsUpdate = useCallback(async (enabled: boolean) => {
+    await settingsService.updateAutomationEnabled(enabled);
+    const newSettings = await settingsService.getAutomationSettings();
+    setSettings(newSettings);
+  }, []);
 
   return (
     <AutomationControl 

@@ -57,7 +57,6 @@ This demonstration system shows how AI can automate outbound calls to schedule a
 
 - **Frontend**: 
   - Next.js 15.0.3 with App Router
-  - TanStack Query for data fetching
   - shadcn/ui component library
   - Tailwind CSS with class-variance-authority
 
