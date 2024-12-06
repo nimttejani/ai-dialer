@@ -108,7 +108,7 @@ function addSecurityHeaders(res: NextResponse) {
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'X-XSS-Protection': '1; mode=block',
     'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
-    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';",
+    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co wss://*.supabase.co;",
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
   }
 
