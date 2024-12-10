@@ -6,7 +6,7 @@ A proof-of-concept system that demonstrates autonomous voice agent capabilities 
 
 ## Demo
 
-[![Voice AI dialer agent built with #Windsurf and #Vapi](https://img.youtube.com/vi/Lws32HyvQq4/0.jpg)](https://www.youtube.com/watch?v=Lws32HyvQq4)
+[![Voice AI dialer agent built with #Windsurf and #Vapi](https://img.youtube.com/vi/Lws32HyvQq4/maxresdefault.jpg)](https://www.youtube.com/watch?v=Lws32HyvQq4)
 
 ## Credits
 
