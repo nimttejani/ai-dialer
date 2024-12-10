@@ -4,6 +4,10 @@
 
 A proof-of-concept system that demonstrates autonomous voice agent capabilities for automated outbound calling. Built with VAPI.ai for voice synthesis, this project explores the potential of AI agents in handling automated phone conversations.
 
+## Demo
+
+[![Voice AI dialer agent built with #Windsurf and #Vapi](https://img.youtube.com/vi/Lws32HyvQq4/0.jpg)](https://www.youtube.com/watch?v=Lws32HyvQq4)
+
 ## Credits
 
 Special thanks to Justin Hughes, founder of Firebringer AI, for providing valuable sales training methodology that has been incorporated into the system's conversational AI prompts.
