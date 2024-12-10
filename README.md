@@ -1,4 +1,4 @@
-# AI Dialer
+# 🤖 AI Dialer ☎️ – Autonomous Voice Agent for 🗓️ Appointment Scheduling
 
 > ⚠️ **Proof of Concept**: This is a demonstration project showcasing AI-powered voice technology for automated calling. It is not intended for production use.
 
