@@ -1,5 +1,5 @@
 export const FIELD_MAPPINGS = {
-  company_name: "Company Name",
+  company_name: "Property Type",
   contact_name: "Contact Name",
   phone: "Phone",
   email: "Email",
