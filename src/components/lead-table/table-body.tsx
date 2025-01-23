@@ -56,7 +56,7 @@ export function LeadTableBody({
       <TableBody>
         <TableRow>
           <TableCell colSpan={Object.keys(FIELD_MAPPINGS).length + 1} className="h-24 text-center">
-            No leads available. Add a new lead or import from CSV.
+            No leads available.
           </TableCell>
         </TableRow>
       </TableBody>
