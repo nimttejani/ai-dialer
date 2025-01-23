@@ -57,7 +57,7 @@ export function LeadFormDialog({
           <div className="grid gap-2">
             <Input
               id="company_name"
-              placeholder="Company Name"
+              placeholder="Property Type"
               value={formData.company_name || ""}
               onChange={(e) =>
                 setFormData({ ...formData, company_name: e.target.value })
